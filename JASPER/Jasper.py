@@ -6,7 +6,9 @@ from groq import Groq
 import os
 import json
 from dotenv import load_dotenv
-
+with open("meta_info.json", "r") as f:
+    meta_info = json.load(f)
+prompt = meta_info["prompt"]
 load_dotenv()
 
 api_key = os.getenv("API_KEY")
@@ -78,7 +80,7 @@ def ask_ai_streaming(prompt, chat_history):
 def main():
     chat_history = []
     bot_name = "jasper"
-    prompt = f"You are {bot_name.title()}, a super intelligent AI assistant. You are designed to assist users with various tasks and provide information. Your responses should be helpful, concise, and engaging."
+    #prompt = f"You are {bot_name.title()}, a super intelligent AI assistant. You are designed to assist users with various tasks and provide information. Your responses should be helpful, concise, and engaging."
     print(prompt)
     chat_history.append({"role": "system", "content": prompt})
     print("Available microphones:")
