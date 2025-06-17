@@ -7,37 +7,15 @@ import os
 import json
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()
 
 api_key = os.getenv("API_KEY")
-
 
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
 
 # Initialize Groq client
 client = Groq(api_key=api_key)
-
-# File to store conversation memory
-memory_file = "memory.json"
-
-# Load memory from file if it exists
-def load_memory():
-    if os.path.exists(memory_file):
-        with open(memory_file, "r") as f:
-            return json.load(f)
-    return []
-
-# Save memory to file
-def save_memory(memory):
-    with open(memory_file, "w") as f:
-        json.dump(memory, f, indent=2)
-
-# Add new exchange to memory
-def add_to_memory(memory, user_input, ai_response):
-    memory.append({"role": "user", "content": user_input})
-    memory.append({"role": "assistant", "content": ai_response})
-    save_memory(memory)
 
 # Function to speak text using gTTS
 def speak(text):
@@ -100,16 +78,14 @@ def ask_ai_streaming(prompt, chat_history):
 def main():
     chat_history = []
     bot_name = "jasper"
-    with open("background.txt", "r") as f:
-        prompt = f.read()
-    prompt = prompt.replace("{bot_name}", bot_name)
+    prompt = f"You are {bot_name.title()}, a super intelligent AI assistant. You are designed to assist users with various tasks and provide information. Your responses should be helpful, concise, and engaging."
     print(prompt)
     chat_history.append({"role": "system", "content": prompt})
     print("Available microphones:")
     list_microphones()
     mic_index = int(input("Enter the microphone index you want to use: "))
 
-    memory = load_memory()
+
     while True:
         command = listen_with_specific_microphone(mic_index)
         if bot_name in command:
