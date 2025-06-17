@@ -5,13 +5,18 @@ import pygame
 from groq import Groq
 import os
 import json
+from dotenv import load_dotenv
+
+load_dotenv() 
+
+api_key = os.getenv("API_KEY")
 
 
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
 
 # Initialize Groq client
-client = Groq(api_key="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")  
+client = Groq(api_key=api_key)
 
 # File to store conversation memory
 memory_file = "memory.json"
@@ -94,7 +99,7 @@ def ask_ai_streaming(prompt, chat_history):
 # Main interaction loop
 def main():
     chat_history = []
-    bot_name = "aria"2
+    bot_name = "jasper"
     with open("background.txt", "r") as f:
         prompt = f.read()
     prompt = prompt.replace("{bot_name}", bot_name)
