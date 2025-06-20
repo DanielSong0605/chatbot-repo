@@ -67,7 +67,7 @@ def listen_with_specific_microphone(mic_index):
         return ""
 
 # Function that allows the agent to think for longer
-def think(conversation):
+def think(conversation, tasks):
     summarizing_agent_memory = [{"role": "system", "content": "Here is the conversation history:\n\n" + '\n'.join([f"{msg["role"].title()}: {msg["content"]}" for msg in conversation[1:]])}]
     # print(summarizing_agent_memory)
     summarizing_agent = ModelWrapper(memory=summarizing_agent_memory)
@@ -91,8 +91,12 @@ def think(conversation):
     
     print(f"\n\nQuestion answered! File saved as: {file_name}\n\n")
 
+    tasks.append(name)
+
 # Main interaction loop
 def main():
+    completed_tasks = []
+
     base_model_info = meta_info["base_agent"]
     agent_name = base_model_info["name"].lower()
     break_word = "quit"
@@ -123,14 +127,21 @@ def main():
         if break_word in user_prompt.lower():
             running = False
         elif agent_name in user_prompt.lower():
+            for task in completed_tasks:
+                print(f"Completed task: {task}")
+                agent.memory.append({"role": "system", "content": f"User request '{task}' has been completed and stored."})
+
+            completed_tasks = []
+
             print(agent_name.title() + " is pondering...")
             response = agent.call_model(user_prompt)
 
             if "{think()}" in response:
                 # print("Thinking...", response)
                 response = response.replace("{think()}", "").strip()
-                think(agent.memory)
-                # threading.Thread(target=speak, daemon=True, args=(response,)).start()
+                agent.memory.append({"role": "system", "content": "User question is currently being processed using the think() method."})
+                # think(agent.memory)
+                threading.Thread(target=think, daemon=True, args=(agent.memory, completed_tasks)).start()
 
             print(f"{agent_name.title()}: {response}")
 
