@@ -59,6 +59,11 @@ def listen_with_specific_microphone(mic_index):
 
 # Main interaction loop
 def main():
+    # Allows the user to decide on the input and output methods of the agent
+    use_voice_input = input("Do you want to use voice input? (y/n): ").strip().lower() == "y"
+    use_voice_output = input("Do you want to use voice output? (y/n): ").strip().lower() == "y"
+
+    # Loads in the meta information from a JSON file used for the agent, including it's name and prompt
     with open("meta_info.json", "r") as f:
         meta_info = json.load(f)
 
@@ -67,24 +72,29 @@ def main():
 
     sys_prompt = meta_info["prompt"]
 
-    print("Available microphones:")
-    list_microphones()
-    mic_index = int(input("Enter the microphone index you want to use: "))
+    if use_voice_input:
+        print("Available microphones:")
+        list_microphones()
+        mic_index = int(input("Enter the microphone index you want to use: "))
 
     agent = ModelWrapper(sys_prompt=sys_prompt)
     running = True
 
     while running:
-        user_prompt = listen_with_specific_microphone(mic_index)
+        if use_voice_input:
+            user_prompt = listen_with_specific_microphone(mic_index)
+        else:
+            user_prompt = input("User: ")
 
         if break_word in user_prompt:
             running = False
-
-        if agent_name in user_prompt:
+        elif agent_name in user_prompt:
             print(agent_name.title() + " is pondering...") 
             response = agent.call_model(user_prompt)
             print(f"{agent_name.title()}: {response}")
-            speak(response)
+
+            if use_voice_output:
+                speak(response)
 
 
 if __name__ == "__main__":
