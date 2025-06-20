@@ -20,7 +20,7 @@ pygame.mixer.init()
 # Initialize Groq client
 client = Groq(api_key=api_key)
 
-stop_event = threading.Event()
+stop_speech_event = threading.Event()
 
 # Function to speak text using gTTS
 def speak(text):
@@ -32,7 +32,7 @@ def speak(text):
     sound = pygame.mixer.Sound(temp_path)
     channel = sound.play()
 
-    while channel.get_busy() and not stop_event.is_set():
+    while channel.get_busy() and not stop_speech_event.is_set():
         pygame.time.wait(100)
 
     channel.stop()
@@ -90,10 +90,10 @@ def main():
         if use_voice_input:
             user_prompt = listen_with_specific_microphone(mic_index)
             if user_prompt != "":
-                stop_event.set()
+                stop_speech_event.set()
         else:
             user_prompt = input("User: ")
-            stop_event.set()
+            stop_speech_event.set()
 
         if break_word in user_prompt.lower():
             running = False
@@ -103,7 +103,7 @@ def main():
             print(f"{agent_name.title()}: {response}")
 
             if use_voice_output:
-                stop_event.clear()
+                stop_speech_event.clear()
                 threading.Thread(target=speak, daemon=True, args=(response,)).start()
 
 
