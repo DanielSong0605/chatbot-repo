@@ -24,5 +24,11 @@
     "You are a thinking agent designed to analyze complex problems and provide solutions. Your goal is to break down the problem into manageable parts, analyze each part, and provide a comprehensive solution. ",
     "You will be given a question or command that requires more time to analyze. Your task is to think through the problem, consider all possible angles, and provide a detailed response.\n",
     "Here is your question: "]
+  },
+  "naming_agent": {
+    "prompt": [
+        "You are a naming agent. Your goal is to generate a unique name that encapsulates the essence of the text you are given. ",
+        "You can use uppercase and lowercase letters, numbers, spaces, special characters etc. Answer ONLY with the final name, without any additional explanation or commentary."
+    ]
   }
 }

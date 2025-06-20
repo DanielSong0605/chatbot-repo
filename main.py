@@ -73,12 +73,23 @@ def think(conversation):
     summarizing_agent = ModelWrapper(memory=summarizing_agent_memory)
     summarizing_agent_prompt = ''.join(meta_info["summarizing_agent"]["prompt"])
     question = summarizing_agent.call_model(summarizing_agent_prompt, prompt_role="system")
-    print(f"\n\nQuestion identified: {question}\n\n")
+    # print(f"\n\nQuestion identified: {question}\n\n")
 
     thinking_agent_prompt = ''.join(meta_info["thinking_agent"]["prompt"]) + question
     thinking_agent = ModelWrapper()
     answer = thinking_agent.call_model(thinking_agent_prompt, prompt_role="system")
-    print(f"\n\nQuestion answered:\n{answer}\n\n")
+    # print(f"\n\nQuestion answered:\n{answer}\n\n")
+
+    naming_agent_prompt = ''.join(meta_info["naming_agent"]["prompt"]) + f"\nGenerate a short, concise name for the following question (~2-5 words), including spaces: {question}\n\nAnswer: {answer}"
+    naming_agent = ModelWrapper()
+    name = naming_agent.call_model(naming_agent_prompt, prompt_role="system")
+    # print(f"\n\nName generated: {name}\n\n")
+    file_name = ''.join([c for c in name.lower().strip().replace(" ", "_") if c.isalnum() or c == "_"]) + ".txt"
+
+    with open(file_name, "w") as f:
+        f.write(f"Question: {question}\n\nAnswer: {answer}")
+    
+    print(f"\n\nQuestion answered! File saved as: {file_name}\n\n")
 
 # Main interaction loop
 def main():
@@ -116,7 +127,7 @@ def main():
             response = agent.call_model(user_prompt)
 
             if "{think()}" in response:
-                print("Thinking...", response)
+                # print("Thinking...", response)
                 response = response.replace("{think()}", "").strip()
                 think(agent.memory)
                 # threading.Thread(target=speak, daemon=True, args=(response,)).start()
