@@ -76,7 +76,7 @@ def main():
     agent_name = meta_info["agent_name"].lower()
     break_word = "quit"
 
-    sys_prompt = meta_info["prompt"]
+    sys_prompt = ''.join(meta_info["prompt"])
 
     if use_voice_input:
         print("Available microphones:")
