@@ -7,6 +7,8 @@ import os
 import json
 from dotenv import load_dotenv
 from model_wrapper import ModelWrapper
+import threading
+import tempfile
 
 # Loads in the API key kept in a .env file
 load_dotenv()
@@ -18,18 +20,22 @@ pygame.mixer.init()
 # Initialize Groq client
 client = Groq(api_key=api_key)
 
+stop_event = threading.Event()
+
 # Function to speak text using gTTS
 def speak(text):
     tts = gTTS(text=text, lang="en")
-    audio_stream = io.BytesIO()
-    tts.write_to_fp(audio_stream)
-    audio_stream.seek(0)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmpfile:
+        tts.write_to_fp(tmpfile)
+        temp_path = tmpfile.name
 
-    pygame.mixer.music.load(audio_stream, "mp3")
-    pygame.mixer.music.play()
+    sound = pygame.mixer.Sound(temp_path)
+    channel = sound.play()
 
-    while pygame.mixer.music.get_busy():
-        continue
+    while channel.get_busy() and not stop_event.is_set():
+        pygame.time.wait(100)
+
+    channel.stop()
 
 # Lists all available microphones
 def list_microphones():
@@ -68,7 +74,7 @@ def main():
         meta_info = json.load(f)
 
     agent_name = meta_info["agent_name"].lower()
-    break_word = "giggity goo"
+    break_word = "quit"
 
     sys_prompt = meta_info["prompt"]
 
@@ -83,18 +89,22 @@ def main():
     while running:
         if use_voice_input:
             user_prompt = listen_with_specific_microphone(mic_index)
+            if user_prompt != "":
+                stop_event.set()
         else:
             user_prompt = input("User: ")
+            stop_event.set()
 
-        if break_word in user_prompt:
+        if break_word in user_prompt.lower():
             running = False
-        elif agent_name in user_prompt:
+        elif agent_name in user_prompt.lower():
             print(agent_name.title() + " is pondering...") 
             response = agent.call_model(user_prompt)
             print(f"{agent_name.title()}: {response}")
 
             if use_voice_output:
-                speak(response)
+                stop_event.clear()
+                threading.Thread(target=speak, daemon=True, args=(response,)).start()
 
 
 if __name__ == "__main__":
