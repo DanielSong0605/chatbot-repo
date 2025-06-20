@@ -22,6 +22,9 @@ client = Groq(api_key=api_key)
 
 stop_speech_event = threading.Event()
 
+with open("meta_info.json", "r") as f:
+    meta_info = json.load(f)
+
 # Function to speak text using gTTS
 def speak(text):
     tts = gTTS(text=text, lang="en")
@@ -63,20 +66,31 @@ def listen_with_specific_microphone(mic_index):
         print("Speech recognition service error.")
         return ""
 
+# Function that allows the agent to think for longer
+def think(conversation):
+    summarizing_agent_memory = [{"role": "system", "content": "Here is the conversation history:\n\n" + '\n'.join([f"{msg["role"].title()}: {msg["content"]}" for msg in conversation[1:]])}]
+    # print(summarizing_agent_memory)
+    summarizing_agent = ModelWrapper(memory=summarizing_agent_memory)
+    summarizing_agent_prompt = ''.join(meta_info["summarizing_agent"]["prompt"])
+    question = summarizing_agent.call_model(summarizing_agent_prompt, prompt_role="system")
+    print(f"\n\nQuestion identified: {question}\n\n")
+
+    thinking_agent_prompt = ''.join(meta_info["thinking_agent"]["prompt"]) + question
+    thinking_agent = ModelWrapper()
+    answer = thinking_agent.call_model(thinking_agent_prompt, prompt_role="system")
+    print(f"\n\nQuestion answered:\n{answer}\n\n")
+
 # Main interaction loop
 def main():
+    base_model_info = meta_info["base_agent"]
+    agent_name = base_model_info["name"].lower()
+    break_word = "quit"
+
+    sys_prompt = ''.join(base_model_info["prompt"])
+
     # Allows the user to decide on the input and output methods of the agent
     use_voice_input = input("Do you want to use voice input? (y/n): ").strip().lower() == "y"
     use_voice_output = input("Do you want to use voice output? (y/n): ").strip().lower() == "y"
-
-    # Loads in the meta information from a JSON file used for the agent, including it's name and prompt
-    with open("meta_info.json", "r") as f:
-        meta_info = json.load(f)
-
-    agent_name = meta_info["agent_name"].lower()
-    break_word = "quit"
-
-    sys_prompt = ''.join(meta_info["prompt"])
 
     if use_voice_input:
         print("Available microphones:")
@@ -98,8 +112,15 @@ def main():
         if break_word in user_prompt.lower():
             running = False
         elif agent_name in user_prompt.lower():
-            print(agent_name.title() + " is pondering...") 
+            print(agent_name.title() + " is pondering...")
             response = agent.call_model(user_prompt)
+
+            if "{think()}" in response:
+                print("Thinking...", response)
+                response = response.replace("{think()}", "").strip()
+                think(agent.memory)
+                # threading.Thread(target=speak, daemon=True, args=(response,)).start()
+
             print(f"{agent_name.title()}: {response}")
 
             if use_voice_output:
