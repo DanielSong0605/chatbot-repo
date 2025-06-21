@@ -10,10 +10,14 @@ class ModelWrapper:
         self.model = model
 
     def call_model(self, prompt="", store_prompt=True, store_response=True, prompt_role="user"):
-        if store_prompt:
-            self.memory.append({"role": prompt_role, "content": prompt})
+        formatted_prompt = {"role": prompt_role, "content": prompt}
 
-        response = call_model(self.memory, model=self.model)
+        if store_prompt:
+            self.memory.append(formatted_prompt)
+
+        temp_memory = self.memory if store_prompt else self.memory.copy() + [formatted_prompt]
+
+        response = call_model(temp_memory, model=self.model)
 
         if store_response:
             self.memory.append({"role": "assistant", "content": response})
