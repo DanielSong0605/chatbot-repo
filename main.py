@@ -221,8 +221,9 @@ def main():
 
             # If the response contains the think() method, it will start a new thread to process the question
             if "{think()}" in response:
+                print(f"{agent_name.upper()} INITIATED THINK MODE")
                 response = response.replace("{think()}", "").strip()
-                agent.memory.append({"role": "system", "content": "User question is currently being processed using the think() method."})
+                agent.memory.append({"role": "system", "content": "User question is currently being processed using the think() method. You will be alerted once it is completed."})
                 threading.Thread(target=think, daemon=True, args=(agent.memory, completed_tasks)).start()
 
             print(f"{agent_name.title()}: {response}")

@@ -7,6 +7,7 @@ load_dotenv()
 i = 1
 clients = []
 while f"GROQ_API_KEY_{i}" in os.environ:
+    print(os.getenv(f"GROQ_API_KEY_{i}"))
     clients.append(Groq(api_key=os.getenv(f"GROQ_API_KEY_{i}")))
     i += 1
 
@@ -33,10 +34,15 @@ def call_model(messages, target_model="meta-llama/llama-4-maverick-17b-128e-inst
                     stream=True,
                     stop=None,
                 )
+
+                break
             except (APIStatusError, RateLimitError) as e:
                 if verbose:
                     print("Warning: APIStatusError or RateLimitError encountered. Retrying with a different API key.")
         
+        if completion is not None:
+            break
+
         if verbose:
             print("Warning: No API keys successful. Retrying with a different model.")
             
