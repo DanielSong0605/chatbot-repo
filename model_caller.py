@@ -12,7 +12,7 @@ backup_client = Groq(
     api_key=os.getenv("GROQ_API_KEY_2")
 )
 
-def call_model(messages, model="meta-llama/llama-4-maverick-17b-128e-instruct", max_tokens=2048):
+def call_model(messages, model="meta-llama/llama-4-maverick-17b-128e-instruct", max_tokens=2048, verbose=False):
     try:
         completion = client.chat.completions.create(
             model=model,
@@ -24,7 +24,8 @@ def call_model(messages, model="meta-llama/llama-4-maverick-17b-128e-instruct", 
             stop=None,
         )
     except (APIStatusError, RateLimitError) as e:
-        print("Warning: APIStatusError or RateLimitError encountered. Retrying with a different API key.")
+        if verbose:
+            print("Warning: APIStatusError or RateLimitError encountered. Retrying with a different API key.")
 
         try:
             completion = backup_client.chat.completions.create(
@@ -37,7 +38,8 @@ def call_model(messages, model="meta-llama/llama-4-maverick-17b-128e-instruct", 
                 stop=None,
             )
         except (APIStatusError, RateLimitError) as e:
-            print("Warning: APIStatusError or RateLimitError encountered. Retrying with a different model.")
+            if verbose:
+                print("Warning: APIStatusError or RateLimitError encountered. Retrying with a different model.")
 
             completion = client.chat.completions.create(
             model="llama3-70b-8192",
