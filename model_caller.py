@@ -7,7 +7,6 @@ load_dotenv()
 i = 1
 clients = []
 while f"GROQ_API_KEY_{i}" in os.environ:
-    print(os.getenv(f"GROQ_API_KEY_{i}"))
     clients.append(Groq(api_key=os.getenv(f"GROQ_API_KEY_{i}")))
     i += 1
 
