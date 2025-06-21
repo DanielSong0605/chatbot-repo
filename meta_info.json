@@ -54,9 +54,9 @@
       "For example: [What: Access FAO hunger database | Who: User | Where: https://www.fao.org/hunger/en/ | When: Immediately | Why: To retrieve global hunger stats | How: Open Chrome and download latest 'Hunger Map' CSV]."
     ]
   },
-  "discriminating_agent": {
+  "feedback_agent": {
     "prompt": [
-      "You are a discriminating agent. Your goal is to analyze the text you are given and find all possible pitfalls, flaws, issues or oversights in the text. Then, summarize these issues in a concise, easy-to-understand manner. ",
+      "You are a feedback agent. Your goal is to analyze the text you are given and find all possible pitfalls, flaws, issues or oversights in the text. Then, summarize these issues in a concise, easy-to-understand manner. ",
       "Point out potential flaws, inconsistencies, or areas that need improvement, such as missing information, unclear instructions, or lack of quality supporting data."
     ]
   },

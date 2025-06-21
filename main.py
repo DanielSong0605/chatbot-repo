@@ -19,9 +19,6 @@ api_key = os.getenv("GROQ_API_KEY")
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
 
-# Initialize Groq client
-client = Groq(api_key=api_key)
-
 # Create an event to be able to stop speech playback
 stop_speech_event = threading.Event()
 
@@ -76,7 +73,7 @@ def process_section(section, full_plan, question, section_index, finished_sectio
     thinking_prompt = ''.join(meta_info["thinking_prompt"])
 
     editing_agent = ModelWrapper(f"{thinking_prompt}\n\n{meta_info['editing_agent']['prompt']}\nThis is the general prompt: {question}\n\nHere is the full plan: {full_plan}\n\nHere is the section to edit. Only focus on editing and improving this one section: {section}")
-    discriminator_agent = ModelWrapper(f"{thinking_prompt}\n\n{meta_info['discriminating_agent']['prompt']}\nThis is the general prompt: {question}\n\nHere is the full plan: {full_plan}\n\nPlease critique the next section of the plan provided to you.")
+    discriminator_agent = ModelWrapper(f"{thinking_prompt}\n\n{meta_info['feedback_agent']['prompt']}\nThis is the general prompt: {question}\n\nHere is the full plan: {full_plan}\n\nPlease critique the next section of the plan provided to you.")
     feedback = ""
 
     discriminator_satisfied = False
@@ -90,63 +87,67 @@ def process_section(section, full_plan, question, section_index, finished_sectio
             finished_sections[section_index] = current_section
 
 
-# Function that allows the agent to think for longer
+# Function that allows the agent to think for longer:
+# Finds the user's question, generates a rough plan, provides feedback on the plan, edits it, splits it into multiple parts, and processes each part in parallel
+# before recombining them and finalizing the plan
 def think(conversation, tasks):
     thinking_prompt = ''.join(meta_info["thinking_prompt"])
 
-    # Creates a summarizing agent that summarizes the conversation history to find the user's question
+    # Creates a question agent that summarizes the conversation history to find the user's question
     question_agent_memory = [{"role": "system", "content": "Here is the conversation history:\n\n" + '\n'.join([f"{msg["role"].title()}: {msg["content"]}" for msg in conversation[1:]])}]
     question_agent = ModelWrapper(memory=question_agent_memory)
     question_agent_prompt = ''.join(meta_info["question_agent"]["prompt"])
     question = question_agent.call_model(question_agent_prompt, prompt_role="system")
 
+    # Creates a planning agent that generates a rough plan based on the question
     planning_agent_prompt = thinking_prompt + '\n\n' + ''.join(meta_info["planning_agent"]["prompt"]) + "\nHere is your problem: " + question
     planning_agent = ModelWrapper()
     plan = planning_agent.call_model(planning_agent_prompt, prompt_role="system")
     plan = planning_agent.call_model("Please format your plan into a detailed, in-depth step-by-step numbered list.", prompt_role="system").split("</think>")[-1].strip()
     # print("\n\nPlan:", plan)
     
-    discriminating_agent_prompt = thinking_prompt + '\n\n' + ''.join(meta_info["discriminating_agent"]["prompt"])
-    discriminating_agent = ModelWrapper()
+    # Creates a feedback agent that critiques the plan
+    feedback_agent_prompt = thinking_prompt + '\n\n' + ''.join(meta_info["feedback_agent"]["prompt"])
+    feedback_agent = ModelWrapper()
 
-    plan_feedback = discriminating_agent.call_model(discriminating_agent_prompt + "\nHere is the plan to discriminate: " + plan, prompt_role="system", store_prompt=False, store_response=False).split("</think>")[-1].strip()
+    plan_feedback = feedback_agent.call_model(feedback_agent_prompt + "\nHere is the plan to discriminate: " + plan, prompt_role="system", store_prompt=False, store_response=False).split("</think>")[-1].strip()
     # print("\n\nPlan Feedback:", plan_feedback)
 
+    # Creates an editing agent that edits the plan based on the feedback
     editing_agent = ModelWrapper(f"{thinking_prompt}\n\n{meta_info["editing_agent"]["prompt"]} Here is the plan to edit:\n{plan}\n\nHere is the feedback on the plan:\n{plan_feedback}")
     plan = editing_agent.call_model().split("</think>")[-1].strip()
     # print("\n\nRevised Plan:", plan)
 
+    # Creates a splitting agent that splits the plan into multiple sections to be processed in parallel
     splitting_agent = ModelWrapper(f"{thinking_prompt}\n\n{meta_info["splitting_agent"]["prompt"]}\n\nHere is the plan to split:\n{plan}")
     split_plan = (splitting_agent.call_model().split("</think>")[-1].strip())
     split_plan = [section.strip() for section in split_plan.split("<new>") if section != ""]
     # print("\n\nSplit Plan:", split_plan)
 
+    # If the split plan is empty, there has been an error so we exit the thinking process
     if len(split_plan) == 0:
         print("Warning: No tasks to complete. Exiting thinking process.")
         return
     
+    # Creates a list of threads to process each section of the plan in parallel
     section_threads = []
     finished_sections = {}
     for i in range(len(split_plan)):
         section_threads.append(threading.Thread(target=process_section, args=(split_plan[i], plan, question, i, finished_sections), daemon=True))
         section_threads[-1].start()
 
+    # Waits for all threads to finish processing their sections before continuing
     for thread in section_threads:
         thread.join()
 
+    # Sorts the finished sections by their index to maintain the original order
     sorted_sections = dict(sorted(finished_sections.items()))
     # print(sorted_sections)
 
+    # Combines the processed sections into a single plan
     combined_plan = "\n\n".join([section for section in sorted_sections.values()])
     finalizer_agent = ModelWrapper(f"{thinking_prompt}\n\n{meta_info['editing_agent']['prompt']}\n\nYour role is to create the final version of this plan. Combine the sections and smooth out any disjointed areas. Add information where you deem it lacking and remove unnecessary tags such as 'EDITED' or 'ENHANCED' that do not contribute to the actual plan and do not help the user understand what the plan is saying; however, do not remove any important information from the plan:\n{combined_plan}")
     final_plan = finalizer_agent.call_model().split("</think>")[-1].strip()
-
-    # print("\n\nDONE\n")
-
-    # # Creates a thinking agent that processes the question and generates an answer
-    # thinking_agent_prompt = ''.join(meta_info["thinking_agent"]["prompt"]) + question
-    # thinking_agent = ModelWrapper()
-    # answer = thinking_agent.call_model(thinking_agent_prompt, prompt_role="system")
 
     # Creates a naming agent that generates a concise name for the question to create a file name
     naming_agent_prompt = ''.join(meta_info["naming_agent"]["prompt"]) + f"\nThe name should not be creative - only informative, like the title to a study rather than a book. Generate a short, concise, informative name for the following question (~2-3 words), separating words using spaces, based off this question: {question}"
