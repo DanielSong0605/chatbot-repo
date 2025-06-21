@@ -5,7 +5,6 @@ import pygame
 from groq import Groq
 import os
 import json
-from dotenv import load_dotenv
 from model_wrapper import ModelWrapper
 import threading
 import tempfile
@@ -13,10 +12,6 @@ import time
 import random
 import inspect
 import tools
-
-# Loads in the API key kept in a .env file
-load_dotenv()
-api_key = os.getenv("GROQ_API_KEY")
 
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
