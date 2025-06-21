@@ -88,7 +88,7 @@ def think(conversation, tasks):
     naming_agent_prompt = ''.join(meta_info["naming_agent"]["prompt"]) + f"\nThe name should not be creative - only informative, like the title to a study rather than a book. Generate a short, concise, informative name for the following question (~2-3 words), separating words using spaces, based off this question: {question}"
     naming_agent = ModelWrapper()
     name = naming_agent.call_model(naming_agent_prompt, prompt_role="system")
-    file_name = ''.join([c for c in name.lower().strip().replace(" ", "_") if c.isalnum() or c == "_"]) + f"{str(random.randint(1000, 9999))}.txt"
+    file_name = os.path.join('agent_answers', ''.join([c for c in name.lower().strip().replace(" ", "_") if c.isalnum() or c == "_"]) + f"{str(random.randint(1000, 9999))}.txt")
 
     # Stores the question and answer in a text file to be viewed by the user
     with open(file_name, "w") as f:
