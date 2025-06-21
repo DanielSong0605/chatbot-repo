@@ -17,7 +17,7 @@ class ModelWrapper:
 
         temp_memory = self.memory if store_prompt else self.memory.copy() + [formatted_prompt]
 
-        response = call_model(temp_memory, taget_model=self.model)
+        response = call_model(temp_memory, target_model=self.model)
 
         if store_response:
             self.memory.append({"role": "assistant", "content": response})
