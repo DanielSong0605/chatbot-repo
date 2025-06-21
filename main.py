@@ -11,6 +11,8 @@ import threading
 import tempfile
 import time
 import random
+import inspect
+import tools
 
 # Loads in the API key kept in a .env file
 load_dotenv()
@@ -24,6 +26,17 @@ stop_speech_event = threading.Event()
 
 with open("meta_info.json", "r") as f:
     meta_info = json.load(f)
+
+tools_info = [
+    (name, func, inspect.signature(func), inspect.getdoc(func))
+    for name, func in inspect.getmembers(tools, inspect.isfunction)
+    if func.__module__ == tools.__name__  # only functions defined in the file
+]
+
+for name, func, sig, docs in tools_info:
+    print(f"{name}{sig}: {docs}")
+    for name, param in sig.parameters.items():
+        print(name, param, param.kind, param.default, param.annotation)
 
 # Function to speak text using gTTS
 def speak(text):
