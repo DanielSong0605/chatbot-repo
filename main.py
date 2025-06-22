@@ -174,7 +174,7 @@ def main():
     agent_name = base_model_info["name"].lower()
     break_word = "quit"
 
-    sys_prompt = ''.join(base_model_info["prompt"])
+    sys_prompt = ''.join(base_model_info["base_prompt"]) + '\n\n' + ''.join(base_model_info["thinking_prompt"])
 
     # Allows the user to decide on the input and output methods of the agent (voice or text)
     use_voice_input = input("Do you want to use voice input? (y/n): ").strip().lower() == "y"
@@ -206,6 +206,9 @@ def main():
 
             # Stops the speech playback if the user has typed something
             stop_speech_event.set()
+
+        if user_prompt.lower().strip() == break_word:
+            running = False
         
         if(not sleeping):
             listening_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user is talking to the AI assistant agent or not. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Respond with nothing else")
@@ -240,9 +243,9 @@ def main():
             response = agent.call_model(user_prompt)
 
             # If the response contains the think() method, it will start a new thread to process the question
-            if "{think()}" in response:
-                print(f"{agent_name.upper()} INITIATED THINK MODE")
-                response = response.replace("{think()}", "").strip()
+            if "{reason()}" in response:
+                print(f"{agent_name.upper()} INITIATED REASON MODE")
+                response = response.replace("{reason()}", "").split('</think>')[-1].strip()
                 agent.memory.append({"role": "system", "content": "User question is currently being processed using the think() method. You will be alerted once it is completed."})
                 threading.Thread(target=think, daemon=True, args=(agent.memory, completed_tasks)).start()
 
