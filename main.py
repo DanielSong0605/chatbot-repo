@@ -251,7 +251,7 @@ def main():
             # If voice output is selected, it will clear the speech event and speak the response
             if use_voice_output:
                 stop_speech_event.clear()
-                threading.Thread(target=speak, daemon=False, args=(response,)).start()
+                threading.Thread(target=speak, daemon=True, args=(response,)).start()
 
             if not agent_listening:
                 sleeping = False
