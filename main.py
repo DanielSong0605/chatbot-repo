@@ -75,6 +75,7 @@ def listen_with_specific_microphone(mic_index):
 def think(conversation, tasks):
     # Creates a summarizing agent that summarizes the conversation history to find the user's question
     summarizing_agent_memory = [{"role": "system", "content": "Here is the conversation history:\n\n" + '\n'.join([f"{msg["role"].title()}: {msg["content"]}" for msg in conversation[1:]])}]
+    print( summarizing_agent_memory)
     summarizing_agent = ModelWrapper(memory=summarizing_agent_memory)
     summarizing_agent_prompt = ''.join(meta_info["summarizing_agent"]["prompt"])
     question = summarizing_agent.call_model(summarizing_agent_prompt, prompt_role="system")
@@ -115,6 +116,7 @@ def main():
     use_voice_input = input("Do you want to use voice input? (y/n): ").strip().lower() == "y"
     use_voice_output = input("Do you want to use voice output? (y/n): ").strip().lower() == "y"
 
+    
     # Lists the available microphones if voice input is selected
     if use_voice_input:
         print("Available microphones:")
@@ -123,8 +125,11 @@ def main():
 
     agent = ModelWrapper(sys_prompt=sys_prompt)
     running = True
+    sleeping = False
 
     while running:
+        agent_listening = False
+
         # Gets user input through voice or text
         if use_voice_input:
             user_prompt = listen_with_specific_microphone(mic_index)
@@ -137,10 +142,26 @@ def main():
 
             # Stops the speech playback if the user has typed something
             stop_speech_event.set()
+        
+        if(not sleeping):
+            listening_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user is talking to the AI assistant agent or not. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Respond with nothing else")
+            listening_status_response = listening_status_agent.call_model(user_prompt)
+            print(f"Listening response: {listening_status_response}")
+            agent_listening = ''.join([c for c in listening_status_response.lower() if c.isalpha()]) == "true"
+            print(f"Agent listening: {agent_listening}")
 
-        if break_word in user_prompt.lower():
-            running = False
-        elif agent_name in user_prompt.lower():
+            sleeping_Agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user that is talking to the AI assistant agent wants to stop the converstatio or make the AI go to sleep. If you determine the user desires to temporarily or permanently end the session with the AI, named {agent_name.title()}, respond with 'False'. Otherwise respond with 'True'. Respond with nothing else.")
+            sleeping_Agent_response = sleeping_Agent.call_model(user_prompt)
+            sleeping = ''.join([c for c in sleeping_Agent_response.lower() if c.isalpha()]) == "false"
+
+            if sleeping:
+                agent.memory.append({"role": "system", "content": "You are now entering sleep mode. Please respond with a small amount of technical jargon that a robot would use when going to sleeping, but be concise and keep your response short."})
+                agent_listening = True
+
+        print(sleeping)
+    
+            
+        if ((agent_name in user_prompt.lower()) or (agent_listening and user_prompt != "")):
             # Loops through all the completed tasks and adds them to the agent's memory
             for i in range(len(completed_tasks)):
                 task, seen = completed_tasks[i]
@@ -165,7 +186,10 @@ def main():
             # If voice output is selected, it will clear the speech event and speak the response
             if use_voice_output:
                 stop_speech_event.clear()
-                threading.Thread(target=speak, daemon=True, args=(response,)).start()
+                threading.Thread(target=speak, daemon=False, args=(response,)).start()
+
+            if not agent_listening:
+                sleeping = False
 
 
 if __name__ == "__main__":
