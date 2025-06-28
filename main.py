@@ -1,14 +1,11 @@
 import speech_recognition as sr
 from gtts import gTTS
-import io
 import pygame
-from groq import Groq
 import os
 import json
 from model_wrapper import ModelWrapper
 import threading
 import tempfile
-import time
 import random
 import inspect
 import tools
@@ -19,6 +16,7 @@ pygame.mixer.init()
 # Create an event to be able to stop speech playback
 stop_speech_event = threading.Event()
 
+# Load in the meta info to be used later
 with open("meta_info.json", "r") as f:
     meta_info = json.load(f)
 
@@ -41,6 +39,7 @@ def speak(text):
         tts.write_to_fp(tmpfile)
         temp_path = tmpfile.name
 
+    # Playes the audio file
     sound = pygame.mixer.Sound(temp_path)
     channel = sound.play()
 
@@ -182,6 +181,7 @@ def main():
     agent_name = base_model_info["name"].lower()
     break_word = "quit"
 
+    # Creates the initial 
     sys_prompt = ''.join(base_model_info["base_prompt"]) + '\n\n' + ''.join(base_model_info["thinking_prompt"])
 
     # Allows the user to decide on the input and output methods of the agent (voice or text)
@@ -195,12 +195,16 @@ def main():
         list_microphones()
         mic_index = int(input("Enter the microphone index you want to use: "))
 
-    agent = ModelWrapper(sys_prompt=sys_prompt)
+    main_agent = ModelWrapper(sys_prompt=sys_prompt)
+
+    invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user is talking to the AI assistant agent or not. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Respond with nothing else.", model="llama3-70b-8192")
+    awake_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user that is talking to the AI assistant agent wants to stop the converstation, such as making the AI go to sleep. If you determine the user desires to end the session with the AI, named {agent_name.title()}, respond with 'False'. Otherwise respond with 'True'. Respond with nothing else.", model="llama3-70b-8192")
+
     running = True
-    sleeping = False
+    is_awake = True
 
     while running:
-        agent_listening = False
+        is_invoked = False
 
         # Gets user input through voice or text
         if use_voice_input:
@@ -215,48 +219,51 @@ def main():
             # Stops the speech playback if the user has typed something
             stop_speech_event.set()
 
+        # Checks if the user would like to end the conversation, but allows the model a chance to respond
         if user_prompt.lower().strip() == break_word:
             running = False
         
-        if(not sleeping):
-            listening_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user is talking to the AI assistant agent or not. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Respond with nothing else")
-            listening_status_response = listening_status_agent.call_model(user_prompt)
-            print(f"Listening response: {listening_status_response}")
-            agent_listening = ''.join([c for c in listening_status_response.lower() if c.isalpha()]) == "true"
-            print(f"Agent listening: {agent_listening}")
+        if is_awake:
+            invoking_agent_response = invoking_agent.call_model(user_prompt)
+            is_invoked = ''.join([c for c in invoking_agent_response.lower() if c.isalpha()]) == "true"
+            print(f"User is {"not " if not is_invoked else ''}adressing the agent")
 
-            sleeping_Agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user that is talking to the AI assistant agent wants to stop the converstatio or make the AI go to sleep. If you determine the user desires to temporarily or permanently end the session with the AI, named {agent_name.title()}, respond with 'False'. Otherwise respond with 'True'. Respond with nothing else.")
-            sleeping_Agent_response = sleeping_Agent.call_model(user_prompt)
-            sleeping = ''.join([c for c in sleeping_Agent_response.lower() if c.isalpha()]) == "false"
+            awake_agent_response = awake_status_agent.call_model(user_prompt)
+            is_awake = ''.join([c for c in awake_agent_response.lower() if c.isalpha()]) == "true"
 
-            if sleeping:
-                agent.memory.append({"role": "system", "content": "You are now entering sleep mode. Please respond with a small amount of technical jargon that a robot would use when going to sleeping, but be concise and keep your response short."})
-                agent_listening = True
+            if not is_awake:
+                main_agent.memory.append({"role": "system", "content": "You are now entering sleep mode. Please respond with a small amount of technical jargon that a robot would use when going to sleep, but be concise, around 4 words."})
+                is_invoked = True
 
-        print(sleeping)
+        print(agent_name.title() + (" is awake" if is_awake else " is sleeping"))
     
-            
-        if ((agent_name in user_prompt.lower()) or (agent_listening and user_prompt != "")):
+        # Main code - runs through tasks and generates new model response
+        if (agent_name in user_prompt.lower() or is_invoked) and user_prompt != "":
             # Loops through all the completed tasks and adds them to the agent's memory
             for i in range(len(completed_tasks)):
                 task, seen = completed_tasks[i]
-                agent.memory.append({"role": "system", "content": f"User question asking '{task}' has been completed and stored. Please alert the user."})
+                main_agent.memory.append({"role": "system", "content": f"User question asking '{task}' has been completed and stored. Please alert the user."})
 
                 completed_tasks[i] = (task, True)
 
             # Removes all tasks that have been seen by the agent
             completed_tasks[:] = [(task, False) for task, seen in completed_tasks if not seen]
 
+            # Informs the user of the response status and generates a new response
             print(agent_name.title() + " is pondering...")
-            response = agent.call_model(user_prompt)
+            response = main_agent.call_model(user_prompt)
 
-            # If the response contains the think() method, it will start a new thread to process the question
+            # If the response contains the reason() method, it will start a new thread to process the question
             if "{reason()}" in response:
+                # Formats the response and alerts the model of the ongoing reasoning
                 print(f"{agent_name.upper()} INITIATED REASON MODE")
                 response = response.replace("{reason()}", "").split('</think>')[-1].strip()
-                agent.memory.append({"role": "system", "content": "User question is currently being processed using the think() method. You will be alerted once it is completed."})
-                threading.Thread(target=think, daemon=True, args=(agent.memory, completed_tasks)).start()
+                main_agent.memory.append({"role": "system", "content": "User question is currently being processed using the think() method. You will be alerted once it is completed."})
+                
+                # Creates a new thread to respond to complex requests
+                threading.Thread(target=think, daemon=True, args=(main_agent.memory, completed_tasks)).start()
 
+            # Prints out the agent's response
             print(f"{agent_name.title()}: {response}")
 
             # If voice output is selected, it will clear the speech event and speak the response
@@ -264,8 +271,9 @@ def main():
                 stop_speech_event.clear()
                 threading.Thread(target=speak, daemon=True, args=(response,)).start()
 
-            if not agent_listening:
-                sleeping = False
+            # Wakes up the agent if the user directly adressed it - is_invoked can only be True if the agent in awake
+            if not is_invoked:
+                is_awake = True
 
 
 if __name__ == "__main__":
