@@ -199,9 +199,12 @@ def main():
 
     invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user is talking to the AI assistant agent or not. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Respond with nothing else.", model="llama3-70b-8192")
     awake_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user that is talking to the AI assistant agent wants to stop the converstation, such as making the AI go to sleep. If you determine the user desires to end the session with the AI, named {agent_name.title()}, respond with 'False'. Otherwise respond with 'True'. Respond with nothing else.", model="llama3-70b-8192")
+    invoking_agent_memory_length = 6
+    awake_agent_memory_length = 6
 
     running = True
     is_awake = True
+    last_response = ""
 
     while running:
         is_invoked = False
@@ -224,12 +227,30 @@ def main():
             running = False
         
         if is_awake:
-            invoking_agent_response = invoking_agent.call_model(user_prompt, store_prompt=False, store_response=False)
+            if last_response != "":
+                invoking_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
+
+            invoking_agent_response = invoking_agent.call_model(user_prompt)
             is_invoked = ''.join([c for c in invoking_agent_response.lower() if c.isalpha()]) == "true"
             print(f"User is {"not " if not is_invoked else ''}adressing the agent")
 
-            awake_agent_response = awake_status_agent.call_model(user_prompt, store_prompt=False, store_response=False)
+            if last_response != "":
+                awake_status_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
+
+
+            awake_agent_response = awake_status_agent.call_model(user_prompt)
             is_awake = ''.join([c for c in awake_agent_response.lower() if c.isalpha()]) == "true"
+
+
+            if len(invoking_agent.memory) > invoking_agent_memory_length:
+                invoking_agent.memory = [invoking_agent.memory[0]] + invoking_agent.memory[-invoking_agent_memory_length:]
+            else:
+                 invoking_agent.memory = invoking_agent.memory[-invoking_agent_memory_length:]
+
+            if len(awake_status_agent.memory) > awake_agent_memory_length:
+                awake_status_agent.memory = [awake_status_agent.memory[0]] + awake_status_agent.memory[-awake_agent_memory_length:]
+            else:
+                 awake_status_agent.memory = awake_status_agent.memory[-awake_agent_memory_length:]
 
             if not is_awake:
                 main_agent.memory.append({"role": "system", "content": "You are now entering sleep mode. Please respond with a small amount of technical jargon that a robot would use when going to sleep, but be concise, around 4 words."})
@@ -255,15 +276,18 @@ def main():
 
             # If the response contains the reason() method, it will start a new thread to process the question
             if "{reason()}" in response:
-                # Formats the response and alerts the model of the ongoing reasoning
+                # Alerts the user and formats the response
                 print(f"{agent_name.upper()} INITIATED REASON MODE")
-                response = response.replace("{reason()}", "").split('</think>')[-1].strip()
-                main_agent.memory.append({"role": "system", "content": "User question is currently being processed using the think() method. You will be alerted once it is completed."})
+                response = response.replace("{reason()}", "")
                 
                 # Creates a new thread to respond to complex requests
                 threading.Thread(target=think, daemon=True, args=(main_agent.memory, completed_tasks)).start()
 
-            # Prints out the agent's response
+                # Updates the models memory to give it information on the current status of the method
+                main_agent.memory.append({"role": "system", "content": "User question is currently being processed using the reason() method. You will be alerted once it is completed."})
+
+            # Prints out the agent's response, without its thinking
+            response = response.split('</think>')[-1].strip()
             print(f"{agent_name.title()}: {response}")
 
             # If voice output is selected, it will clear the speech event and speak the response
@@ -274,6 +298,8 @@ def main():
             # Wakes up the agent if the user directly adressed it - is_invoked can only be True if the agent in awake
             if not is_invoked:
                 is_awake = True
+
+            last_response = response
 
 
 if __name__ == "__main__":
