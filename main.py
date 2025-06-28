@@ -224,11 +224,11 @@ def main():
             running = False
         
         if is_awake:
-            invoking_agent_response = invoking_agent.call_model(user_prompt)
+            invoking_agent_response = invoking_agent.call_model(user_prompt, store_prompt=False, store_response=False)
             is_invoked = ''.join([c for c in invoking_agent_response.lower() if c.isalpha()]) == "true"
             print(f"User is {"not " if not is_invoked else ''}adressing the agent")
 
-            awake_agent_response = awake_status_agent.call_model(user_prompt)
+            awake_agent_response = awake_status_agent.call_model(user_prompt, store_prompt=False, store_response=False)
             is_awake = ''.join([c for c in awake_agent_response.lower() if c.isalpha()]) == "true"
 
             if not is_awake:
