@@ -197,8 +197,9 @@ def main():
 
     main_agent = ModelWrapper(sys_prompt=sys_prompt)
 
-    invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user is talking to the AI assistant agent or not. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Respond with nothing else.", model="llama3-70b-8192")
-    awake_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the following message, the user that is talking to the AI assistant agent wants to stop the converstation, such as making the AI go to sleep. If you determine the user desires to end the session with the AI, named {agent_name.title()}, respond with 'False'. Otherwise respond with 'True'. Respond with nothing else.", model="llama3-70b-8192")
+    start_message = {"role": "system", "content": "START OF AGENT INTERACTION - NO MESSAGES BEFORE THIS"}
+    invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user is most likely talking to their AI assistant or someone else. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Remember that the user may be talking to themself or another person. Think if necessary, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="llama3-70b-8192")
+    awake_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user that is talking to their AI assistant wants to make the AI go to sleep or in any way stop the conversation. If you determine the user desires to end the session with the AI, named {agent_name.title()}, respond with 'False'. Otherwise respond with 'True'. Think as much as you want, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="llama3-70b-8192")
     invoking_agent_memory_length = 6
     awake_agent_memory_length = 6
 
@@ -227,21 +228,25 @@ def main():
             running = False
         
         if is_awake:
+            # Updates the invoking agent memory with the main agent's response
             if last_response != "":
                 invoking_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
 
-            invoking_agent_response = invoking_agent.call_model(user_prompt)
-            is_invoked = ''.join([c for c in invoking_agent_response.lower() if c.isalpha()]) == "true"
-            print(f"User is {"not " if not is_invoked else ''}adressing the agent")
+            # Uses the invoking agent to determine if the user is addressing the main agent
+            invoking_agent_response = invoking_agent.call_model(f"User said: {user_prompt}", prompt_role="system")
+            is_invoked = ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
+            print(f"User is {"NOT " if not is_invoked else ''}adressing the agent")
 
+
+            # Updates the awake agent memory with the main agent's response
             if last_response != "":
                 awake_status_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
 
-
+            # Uses the awake agent to determine if the user wants the main agent to sleep
             awake_agent_response = awake_status_agent.call_model(user_prompt)
-            is_awake = ''.join([c for c in awake_agent_response.lower() if c.isalpha()]) == "true"
+            is_awake = not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false"
 
-
+            # Clips agent memories if too long to reduce latency
             if len(invoking_agent.memory) > invoking_agent_memory_length:
                 invoking_agent.memory = [invoking_agent.memory[0]] + invoking_agent.memory[-invoking_agent_memory_length:]
             else:
@@ -252,6 +257,7 @@ def main():
             else:
                  awake_status_agent.memory = awake_status_agent.memory[-awake_agent_memory_length:]
 
+            # Alerts the main agent that is is asleep to respond accordingly, if necessary
             if not is_awake:
                 main_agent.memory.append({"role": "system", "content": "You are now entering sleep mode. Please respond with a small amount of technical jargon that a robot would use when going to sleep, but be concise, around 4 words."})
                 is_invoked = True
