@@ -172,6 +172,45 @@ def think(conversation, tasks):
     tasks.append((question, False))
 
 
+def call_listening_agents(user_prompt, last_response, invoking_agent, awake_status_agent, agent_name, invoking_agent_memory_length, awake_agent_memory_length):
+    responses = {"invoked_response": None, "awake_response": None}
+
+    # Updates the invoking agent and awake agent memory with the main agent's response
+    if last_response != "":
+        invoking_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
+    if last_response != "":
+        awake_status_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
+
+    # Uses the invoking agent to determine if the user is addressing the main agent
+    is_invoked_thread = threading.Thread(target=main_agent_is_invoked, daemon=True, args=(invoking_agent, f"User said: {user_prompt}", responses))
+    is_deactivated_thread = threading.Thread(target=main_agent_is_deactivated, daemon=True, args=(awake_status_agent, f"User said: {user_prompt}", responses))
+    is_invoked_thread.start()
+    is_deactivated_thread.start()
+    is_invoked_thread.join()
+    is_deactivated_thread.join()
+
+    # Uses the invoking and awake agent's response to determine if the user is addressing the main agent, and/or wants the main agent to sleep
+    invoking_agent_response = responses["invoked_response"]
+    is_invoked = ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
+    print(f"User is {"NOT " if not is_invoked else ''}adressing the agent")
+    
+    awake_agent_response = responses["awake_response"]
+    is_awake = not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false"
+
+    # Clips agent memories if too long to reduce latency
+    if len(invoking_agent.memory) > invoking_agent_memory_length:
+        invoking_agent.memory = [invoking_agent.memory[0]] + invoking_agent.memory[-invoking_agent_memory_length:]
+    else:
+         invoking_agent.memory = invoking_agent.memory[-invoking_agent_memory_length:]
+
+    if len(awake_status_agent.memory) > awake_agent_memory_length:
+        awake_status_agent.memory = [awake_status_agent.memory[0]] + awake_status_agent.memory[-awake_agent_memory_length:]
+    else:
+         awake_status_agent.memory = awake_status_agent.memory[-awake_agent_memory_length:]
+
+    return is_invoked, is_awake
+
+
 def main_agent_is_invoked(agent, prompt, responses):
     response = agent.call_model(prompt, prompt_role="system")
     responses["invoked_response"] = response
@@ -239,40 +278,7 @@ def main():
             running = False
         
         if is_awake:
-            responses = {"invoked_response": None, "awake_response": None}
-
-            # Updates the invoking agent and awake agent memory with the main agent's response
-            if last_response != "":
-                invoking_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
-            if last_response != "":
-                awake_status_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
-
-            # Uses the invoking agent to determine if the user is addressing the main agent
-            is_invoked_thread = threading.Thread(target=main_agent_is_invoked, daemon=True, args=(invoking_agent, f"User said: {user_prompt}", responses))
-            is_deactivated_thread = threading.Thread(target=main_agent_is_deactivated, daemon=True, args=(awake_status_agent, f"User said: {user_prompt}", responses))
-            is_invoked_thread.start()
-            is_deactivated_thread.start()
-            is_invoked_thread.join()
-            is_deactivated_thread.join()
-
-            # Uses the invoking and awake agent's response to determine if the user is addressing the main agent, and/or wants the main agent to sleep
-            invoking_agent_response = responses["invoked_response"]
-            is_invoked = ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
-            print(f"User is {"NOT " if not is_invoked else ''}adressing the agent")
-            
-            awake_agent_response = responses["awake_response"]
-            is_awake = not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false"
-
-            # Clips agent memories if too long to reduce latency
-            if len(invoking_agent.memory) > invoking_agent_memory_length:
-                invoking_agent.memory = [invoking_agent.memory[0]] + invoking_agent.memory[-invoking_agent_memory_length:]
-            else:
-                 invoking_agent.memory = invoking_agent.memory[-invoking_agent_memory_length:]
-
-            if len(awake_status_agent.memory) > awake_agent_memory_length:
-                awake_status_agent.memory = [awake_status_agent.memory[0]] + awake_status_agent.memory[-awake_agent_memory_length:]
-            else:
-                 awake_status_agent.memory = awake_status_agent.memory[-awake_agent_memory_length:]
+            is_invoked, is_awake = call_listening_agents(user_prompt, last_response, invoking_agent, awake_status_agent, agent_name, invoking_agent_memory_length, awake_agent_memory_length)
 
             # Alerts the main agent that is is asleep to respond accordingly, if necessary
             if not is_awake:
