@@ -9,6 +9,8 @@ import tempfile
 import random
 import inspect
 import tools
+import time
+from tools import all_tools
 
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
@@ -177,9 +179,9 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
 
     # Updates the invoking agent and awake agent memory with the main agent's response
     if last_response != "":
-        invoking_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
+        invoking_agent.add_memory("system", f"{agent_name.title()} said: {last_response}")
     if last_response != "":
-        awake_status_agent.memory.append({"role": "system", "content": f"{agent_name.title()} said: {last_response}"})
+        awake_status_agent.add_memory("system", f"{agent_name.title()} said: {last_response}")
 
     # Uses the invoking agent to determine if the user is addressing the main agent
     is_invoked_thread = threading.Thread(target=main_agent_is_invoked, daemon=True, args=(invoking_agent, f"User said: {user_prompt}", responses))
@@ -189,10 +191,17 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
     is_invoked_thread.join()
     is_deactivated_thread.join()
 
+    start_time = time.time()
+    max_wait_time = 5
+    while not all(val is not None for val in responses.values()):
+        time.sleep(0.1)
+
+        if time.time() - start_time >= 5:
+            return False, True
+
     # Uses the invoking and awake agent's response to determine if the user is addressing the main agent, and/or wants the main agent to sleep
     invoking_agent_response = responses["invoked_response"]
     is_invoked = ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
-    print(f"User is {"NOT " if not is_invoked else ''}adressing the agent")
     
     awake_agent_response = responses["awake_response"]
     is_awake = not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false"
@@ -212,13 +221,15 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
 
 
 def main_agent_is_invoked(agent, prompt, responses):
-    response = agent.call_model(prompt, prompt_role="system")
-    responses["invoked_response"] = response
+    agent.add_memory("system", f"User message:")
+    response = agent.call_model(prompt)
+    responses["invoked_response"] = "result: " + response.content
 
 
 def main_agent_is_deactivated(agent, prompt, responses):
-    response = agent.call_model(prompt, prompt_role="system")
-    responses["awake_response"] = response
+    agent.add_memory("system", f"User message:")
+    response = agent.call_model(prompt)
+    responses["awake_response"] = "result: " + response.content
 
 
 # Main interaction loop
@@ -282,9 +293,10 @@ def main():
 
             # Alerts the main agent that is is asleep to respond accordingly, if necessary
             if not is_awake:
-                main_agent.memory.append({"role": "system", "content": "You are now entering sleep mode. Please respond with a small amount of technical jargon that a robot would use when going to sleep, but be concise, around 4 words."})
+                main_agent.add_memory("system", "You are now entering sleep mode. Please respond with a small amount of technical jargon that a robot would use when going to sleep, but be concise, around 3-5 words.")
                 is_invoked = True
 
+        print(f"User is {"NOT " if not is_invoked else ''}adressing the agent")
         print(agent_name.title() + (" is awake" if is_awake else " is sleeping"))
     
         # Main code - runs through tasks and generates new model response
@@ -292,7 +304,7 @@ def main():
             # Loops through all the completed tasks and adds them to the agent's memory
             for i in range(len(completed_tasks)):
                 task, seen = completed_tasks[i]
-                main_agent.memory.append({"role": "system", "content": f"User question asking '{task}' has been completed and stored. Please alert the user."})
+                main_agent.add_memory("system", f"User question asking '{task}' has been completed and stored. Please alert the user.")
 
                 completed_tasks[i] = (task, True)
 
@@ -301,34 +313,48 @@ def main():
 
             # Informs the user of the response status and generates a new response
             print(agent_name.title() + " is pondering...")
-            response = main_agent.call_model(user_prompt)
+            agent_response = main_agent.call_model(user_prompt)
+            tool_calls = agent_response.tool_calls
+
+            while len(tool_calls) > 0:
+                tool_messages = []
+                for tool_call in tool_calls:
+                    selected_tool = {tool.name: tool for tool in all_tools}[tool_call["name"].lower()]
+                    tool_msg = selected_tool.invoke(tool_call)
+                    tool_messages.append(tool_msg)
+
+                main_agent.add_memories(tool_messages)
+                agent_response = main_agent.call_model(user_prompt)
+                tool_calls = agent_response.tool_calls
+
+            response_content = agent_response.content
 
             # If the response contains the reason() method, it will start a new thread to process the question
-            if "{reason()}" in response:
+            if "{reason()}" in response_content:
                 # Alerts the user and formats the response
                 print(f"{agent_name.upper()} INITIATED REASON MODE")
-                response = response.replace("{reason()}", "")
+                response_content = response_content.replace("{reason()}", "")
                 
                 # Creates a new thread to respond to complex requests
                 threading.Thread(target=think, daemon=True, args=(main_agent.memory, completed_tasks)).start()
 
                 # Updates the models memory to give it information on the current status of the method
-                main_agent.memory.append({"role": "system", "content": "User question is currently being processed using the reason() method. You will be alerted once it is completed."})
+                main_agent.add_memory("system", "User question is currently being processed using the reason() method. You will be alerted once it is completed.")
 
             # Prints out the agent's response, without its thinking
-            response = response.split('</think>')[-1].strip()
-            print(f"{agent_name.title()}: {response}")
+            response_content = response_content.split('</think>')[-1].strip()
+            print(f"{agent_name.title()}: {response_content}")
 
             # If voice output is selected, it will clear the speech event and speak the response
             if use_voice_output:
                 stop_speech_event.clear()
-                threading.Thread(target=speak, daemon=True, args=(response,)).start()
+                threading.Thread(target=speak, daemon=True, args=(response_content,)).start()
 
             # Wakes up the agent if the user directly adressed it - is_invoked can only be True if the agent in awake
             if not is_invoked:
                 is_awake = True
 
-            last_response = response
+            last_response = response_content
 
 
 if __name__ == "__main__":
