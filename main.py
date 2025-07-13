@@ -174,22 +174,30 @@ def think(conversation, tasks):
 
 
 def call_listening_agents(user_prompt, last_response, invoking_agent, awake_status_agent, agent_name, invoking_agent_memory_length, awake_agent_memory_length):
-    responses = {"invoked_response": None, "awake_response": None}
-
     # Updates the invoking agent and awake agent memory with the main agent's response
     if last_response != "":
         invoking_agent.add_memory("system", f"{agent_name.title()} said: {last_response}")
     if last_response != "":
         awake_status_agent.add_memory("system", f"{agent_name.title()} said: {last_response}")
 
-    # Uses the invoking agent to determine if the user is addressing the main agent
-    is_invoked_thread = threading.Thread(target=main_agent_is_invoked, daemon=True, args=(invoking_agent, f"User said: {user_prompt}", responses))
-    is_deactivated_thread = threading.Thread(target=main_agent_is_deactivated, daemon=True, args=(awake_status_agent, f"User said: {user_prompt}", responses))
-    is_invoked_thread.start()
-    is_deactivated_thread.start()
-    is_invoked_thread.join()
-    is_deactivated_thread.join()
+    # Preemptively checks if the user mentioned the agent to avoid having to call a LLM
+    user_mentioned_agent = agent_name.lower() in user_prompt.lower()
+    # Creates a dictionary for the threads to write their responses to
+    responses = {"invoked_response": (True if user_mentioned_agent else None), "awake_response": None}
 
+    # Uses the awake agent and (if necessary) invoking agent to determine if the user is addressing the main agent or wants it to sleep
+    is_deactivated_thread = threading.Thread(target=main_agent_is_deactivated, daemon=True, args=(awake_status_agent, f"User said: {user_prompt}", responses))
+    is_deactivated_thread.start()
+
+    if not user_mentioned_agent:
+        is_invoked_thread = threading.Thread(target=main_agent_is_invoked, daemon=True, args=(invoking_agent, f"User said: {user_prompt}", responses))
+        is_invoked_thread.start()
+
+    is_deactivated_thread.join()
+    if not user_mentioned_agent:
+       is_invoked_thread.join()
+
+    # In case of an error, the function automatically returns default values after 5 seconds
     start_time = time.time()
     max_wait_time = 5
     while not all(val is not None for val in responses.values()):
@@ -200,8 +208,8 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
 
     # Uses the invoking and awake agent's response to determine if the user is addressing the main agent, and/or wants the main agent to sleep
     invoking_agent_response = responses["invoked_response"]
-    is_invoked = ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
-    
+    is_invoked = user_mentioned_agent or ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
+
     awake_agent_response = responses["awake_response"]
     is_awake = not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false"
 
