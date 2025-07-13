@@ -1,4 +1,5 @@
 from langchain_core.tools import tool
+from datetime import datetime
 
 
 @tool
@@ -23,4 +24,18 @@ def multiply(a: int, b: int) -> int:
     return a * b
 
 
-all_tools = [add, multiply]
+@tool
+def get_date() -> str:
+    """Get the current date in the user's timezone."""
+
+    return datetime.now().strftime("%a %b %d %Y")
+
+
+@tool
+def get_time() -> str:
+    """Get the current time 24hr in the user's timezone in hours, minutes, seconds."""
+
+    return datetime.now().strftime("%H:%M, %Ss")
+
+
+all_tools = [add, multiply, get_date, get_time]
