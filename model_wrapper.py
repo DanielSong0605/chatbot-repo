@@ -1,5 +1,5 @@
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 import os
 from dotenv import load_dotenv
@@ -43,8 +43,7 @@ class ModelWrapper:
 
     def call_model(self, content="", store_prompt=True, store_response=True, prompt_role="user"):
         prompt = message_type_registry.get(prompt_role)(content) if content != "" and content is not None else None
-        messages = self.memory
-        if prompt is not None: messages.append(prompt)
+        messages = self.memory + ([prompt] if prompt is not None else [])
 
         os.environ[api_key_registry[self.model_provider]] = os.getenv(f"{api_key_registry[self.model_provider]}_1")
 
