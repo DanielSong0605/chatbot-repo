@@ -10,9 +10,13 @@ import random
 import time
 from tools import all_tools
 from datetime import datetime
+from langchain.globals import set_verbose
 
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
+
+# Sets lanchain verbose variable to true to print important chain events
+set_verbose(True)
 
 # Create an event to be able to stop speech playback
 stop_speech_event = threading.Event()
