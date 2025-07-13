@@ -10,7 +10,8 @@ load_dotenv()
 message_type_registry = {
     "user": HumanMessage,
     "assistant": AIMessage,
-    "system": SystemMessage
+    "system": SystemMessage,
+    "tool": ToolMessage
 }
 
 api_key_registry = {
@@ -40,6 +41,11 @@ class ModelWrapper:
 
     def add_memories(self, new_memories):
         self.memory += new_memories
+
+    def format_memory(self):
+        reversed_message_type_registry = {value: key for key, value in message_type_registry.items()}
+        formatted_memory = [{(reversed_message_type_registry[type(message)] if type(message) in reversed_message_type_registry.keys() else "other"): vars(message)} for message in self.memory]
+        return formatted_memory
 
     def call_model(self, content="", store_prompt=True, store_response=True, prompt_role="user"):
         prompt = message_type_registry.get(prompt_role)(content) if content != "" and content is not None else None
