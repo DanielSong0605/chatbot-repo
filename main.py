@@ -7,8 +7,6 @@ from model_wrapper import ModelWrapper
 import threading
 import tempfile
 import random
-import inspect
-import tools
 import time
 from tools import all_tools
 
@@ -21,17 +19,6 @@ stop_speech_event = threading.Event()
 # Load in the meta info to be used later
 with open("meta_info.json", "r") as f:
     meta_info = json.load(f)
-
-tools_info = [
-    (name, func, inspect.signature(func), inspect.getdoc(func))
-    for name, func in inspect.getmembers(tools, inspect.isfunction)
-    if func.__module__ == tools.__name__  # only functions defined in the file
-]
-
-for name, func, sig, docs in tools_info:
-    print(f"{name}{sig}: {docs}")
-    for name, param in sig.parameters.items():
-        print(name, param, param.kind, param.default, param.annotation)
 
 # Function to speak text using gTTS
 def speak(text):
@@ -256,7 +243,7 @@ def main():
         list_microphones()
         mic_index = int(input("Enter the microphone index you want to use: "))
 
-    main_agent = ModelWrapper(sys_prompt=sys_prompt)
+    main_agent = ModelWrapper(sys_prompt=sys_prompt, tools_access=True)
 
     start_message = {"role": "system", "content": "START OF AGENT INTERACTION - NO MESSAGES BEFORE THIS"}
     invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user is most likely talking to their AI assistant or someone else. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Remember that the user may be talking to themself or another person. Think if necessary, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="llama3-70b-8192")
