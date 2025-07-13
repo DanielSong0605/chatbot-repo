@@ -21,9 +21,16 @@ set_verbose(True)
 # Create an event to be able to stop speech playback
 stop_speech_event = threading.Event()
 
+chat_log_file_path = "chat_log.json"
+
 # Load in the meta info to be used later
 with open("meta_info.json", "r") as f:
     meta_info = json.load(f)
+
+# Creates an empty json file to store conversation history if necessary
+if not os.path.exists(chat_log_file_path):
+    with open(chat_log_file_path, "w") as f:
+        json.dump({}, f, indent=4)
 
 # Function to speak text using gTTS
 def speak(text):
@@ -350,14 +357,14 @@ def main():
                 is_awake = True
 
             # Loads in the previous chat histories, including the current one if it exists
-            with open('chat_log.json', 'r') as f:
+            with open(chat_log_file_path, 'r') as f:
                 all_logs = json.load(f)
 
             # Overrides the chat history with the updated one
             all_logs[instance_id] = main_agent.format_memory()
 
             # Stores the updated history back to the json file
-            with open('chat_log.json', 'w') as f:
+            with open(chat_log_file_path, 'w') as f:
                 json.dump(all_logs, f, indent=4)
 
             last_response = response_content
