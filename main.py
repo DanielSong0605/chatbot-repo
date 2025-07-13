@@ -9,6 +9,7 @@ import tempfile
 import random
 import time
 from tools import all_tools
+from datetime import datetime
 
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
@@ -221,6 +222,9 @@ def main_agent_is_deactivated(agent, prompt, responses):
 
 # Main interaction loop
 def main():
+    # Creates an ID for this specific instance of using the agent, to be used for chat history storage and other identification
+    instance_id = datetime.now().strftime("%d-%m-%y %H:%M:%S") + " - " + str(random.randint(1000, 9999))
+
     # Creates an empty list to store future completed tasks
     completed_tasks = []
 
@@ -340,6 +344,17 @@ def main():
             # Wakes up the agent if the user directly adressed it - is_invoked can only be True if the agent in awake
             if not is_invoked:
                 is_awake = True
+
+            # Loads in the previous chat histories, including the current one if it exists
+            with open('chat_log.json', 'r') as f:
+                all_logs = json.load(f)
+
+            # Overrides the chat history with the updated one
+            all_logs[instance_id] = main_agent.format_memory()
+
+            # Stores the updated history back to the json file
+            with open('chat_log.json', 'w') as f:
+                json.dump(all_logs, f, indent=4)
 
             last_response = response_content
 
