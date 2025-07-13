@@ -21,7 +21,11 @@ set_verbose(True)
 # Create an event to be able to stop speech playback
 stop_speech_event = threading.Event()
 
+# Creates a variable for the filepath where the chat history will be logged
 chat_log_file_path = "chat_log.json"
+
+# Creates a list of words that will activate the code that checks if the agent should sleep to avoid unnecessary checks
+sleep_trigger_words = ["bed", "bye", "deactivate", "dormancy", "exit", "goodnight", "nap", "offline", "pause", "power", "quit", "shut", "sleep", "sleepy", "stop", "turn"]
 
 # Load in the meta info to be used later
 with open("meta_info.json", "r") as f:
@@ -182,18 +186,22 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
 
     # Preemptively checks if the user mentioned the agent to avoid having to call a LLM
     user_mentioned_agent = agent_name.lower() in user_prompt.lower()
+    # Preemptively checks if the user definitely does not want to agent to sleep to avoid having to call a LLM
+    check_sleep = len([True for word in sleep_trigger_words if word in user_prompt.lower()]) > 0
     # Creates a dictionary for the threads to write their responses to
-    responses = {"invoked_response": (True if user_mentioned_agent else None), "awake_response": None}
+    responses = {"invoked_response": (True if user_mentioned_agent else None), "awake_response": (True if not check_sleep else None)}
 
-    # Uses the awake agent and (if necessary) invoking agent to determine if the user is addressing the main agent or wants it to sleep
-    is_deactivated_thread = threading.Thread(target=main_agent_is_deactivated, daemon=True, args=(awake_status_agent, f"User said: {user_prompt}", responses))
-    is_deactivated_thread.start()
+    # Uses the awake agent and invoking agent (if necessary) to determine if the user is addressing the main agent or wants it to sleep
+    if check_sleep:
+        is_deactivated_thread = threading.Thread(target=main_agent_is_deactivated, daemon=True, args=(awake_status_agent, f"User said: {user_prompt}", responses))
+        is_deactivated_thread.start()
 
     if not user_mentioned_agent:
         is_invoked_thread = threading.Thread(target=main_agent_is_invoked, daemon=True, args=(invoking_agent, f"User said: {user_prompt}", responses))
         is_invoked_thread.start()
 
-    is_deactivated_thread.join()
+    if check_sleep:
+        is_deactivated_thread.join()
     if not user_mentioned_agent:
        is_invoked_thread.join()
 
@@ -211,7 +219,7 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
     is_invoked = user_mentioned_agent or ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
 
     awake_agent_response = responses["awake_response"]
-    is_awake = not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false"
+    is_awake = (not check_sleep) or (not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false")
 
     # Clips agent memories if too long to reduce latency
     if len(invoking_agent.memory) > invoking_agent_memory_length:
