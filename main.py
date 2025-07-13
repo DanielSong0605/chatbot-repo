@@ -203,7 +203,7 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
     while not all(val is not None for val in responses.values()):
         time.sleep(0.1)
 
-        if time.time() - start_time >= 5:
+        if time.time() - start_time >= max_wait_time:
             return False, True
 
     # Uses the invoking and awake agent's response to determine if the user is addressing the main agent, and/or wants the main agent to sleep
