@@ -342,7 +342,7 @@ def main():
                     tool_messages.append(tool_msg)
 
                 main_agent.add_memories(tool_messages)
-                agent_response = main_agent.call_model(user_prompt)
+                agent_response = main_agent.call_model()
                 tool_calls = agent_response.tool_calls
 
             response_content = agent_response.content
