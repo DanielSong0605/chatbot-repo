@@ -219,7 +219,7 @@ def call_listening_agents(user_prompt, last_response, invoking_agent, awake_stat
     is_invoked = user_mentioned_agent or ''.join([c for c in invoking_agent_response.lower().split()[-1] if c.isalpha()]) == "true"
 
     awake_agent_response = responses["awake_response"]
-    is_awake = (not check_sleep) or (not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "false")
+    is_awake = (not check_sleep) or (not ''.join([c for c in awake_agent_response.lower().split()[-1] if c.isalpha()]) == "true")
 
     # Clips agent memories if too long to reduce latency
     if len(invoking_agent.memory) > invoking_agent_memory_length:
@@ -277,8 +277,8 @@ def main():
     main_agent = ModelWrapper(sys_prompt=sys_prompt, tools_access=True)
 
     start_message = {"role": "system", "content": "START OF AGENT INTERACTION - NO MESSAGES BEFORE THIS"}
-    invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user is most likely talking to their AI assistant or someone else. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Remember that the user may be talking to themself or another person. Think if necessary, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="llama-3.1-8b-instant")
-    awake_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user that is talking to their AI assistant wants to make the AI go to sleep or in any way stop the conversation. If you determine the user desires to end the session with the AI, named {agent_name.title()}, respond with 'False'. Otherwise respond with 'True'. Think as much as you want, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="llama-3.1-8b-instant")
+    invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user is most likely talking to their AI assistant or someone else. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Remember that the user may be talking to themself or another person. Think if necessary, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="fast")
+    awake_status_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user that is talking to their AI assistant wants to make the AI go to sleep or in any way stop the conversation. If you determine the user desires to end the session with the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Think as much as you want, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="fast")
     invoking_agent_memory_length = 6
     awake_agent_memory_length = 6
 
