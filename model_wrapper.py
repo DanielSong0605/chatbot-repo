@@ -49,6 +49,12 @@ class ModelWrapper:
         reversed_message_type_registry = {value: key for key, value in message_type_registry.items()}
         formatted_memory = [{(reversed_message_type_registry[type(message)] if type(message) in reversed_message_type_registry.keys() else "other"): vars(message)} for message in self.memory]
         return formatted_memory
+    
+    def format_memory_simple(self):
+        reversed_message_type_registry = {value: key for key, value in message_type_registry.items()}
+        reversed_message_type_registry[ToolMessage] = "system"
+        formatted_memory = [{"role": (reversed_message_type_registry[type(message)] if type(message) in reversed_message_type_registry.keys() else "system"), "content": vars(message)["content"]} for message in self.memory]
+        return formatted_memory
 
     def call_model(self, content="", store_prompt=True, store_response=True, prompt_role="user"):
         prompt = message_type_registry.get(prompt_role)(content) if content != "" and content is not None else None
