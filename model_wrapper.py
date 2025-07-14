@@ -32,8 +32,10 @@ class ModelWrapper:
 
         self.model = model
         self.model_provider = model_provider
-
-        self.tools = all_tools.copy() if tools_access else []
+        
+        llm = init_chat_model(model, model_provider=model_provider)
+        if tools_access: llm = llm.bind_tools(all_tools)
+        self.llm = llm
 
     def add_memory(self, role, content):
         new_memory = message_type_registry.get(role)(content)
@@ -53,10 +55,7 @@ class ModelWrapper:
 
         os.environ[api_key_registry[self.model_provider]] = os.getenv(f"{api_key_registry[self.model_provider]}_1")
 
-        llm = init_chat_model(self.model, model_provider=self.model_provider)
-        if len(self.tools) > 0: llm = llm.bind_tools(self.tools)
-
-        response = llm.invoke(messages)
+        response = self.llm.invoke(messages)
 
         if store_prompt and prompt is not None:
             self.memory.append(prompt)
