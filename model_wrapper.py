@@ -4,6 +4,7 @@ from langchain_core.tools import tool
 import os
 from dotenv import load_dotenv
 from tools import all_tools
+from groq import RateLimitError, APIStatusError
 
 load_dotenv()
 
@@ -53,13 +54,21 @@ class ModelWrapper:
         prompt = message_type_registry.get(prompt_role)(content) if content != "" and content is not None else None
         messages = self.memory + ([prompt] if prompt is not None else [])
 
-        os.environ[api_key_registry[self.model_provider]] = os.getenv(f"{api_key_registry[self.model_provider]}_1")
+        response = None
 
-        response = self.llm.invoke(messages)
+        i = 1
+        while f"{api_key_registry[self.model_provider]}_{i}" in os.environ and response is None:
+            os.environ[api_key_registry[self.model_provider]] = os.getenv(f"{api_key_registry[self.model_provider]}_{i}")
+            try:
+                response = self.llm.invoke(messages)
+            except (RateLimitError, APIStatusError):
+                pass
+            i += 1
 
-        if store_prompt and prompt is not None:
-            self.memory.append(prompt)
-        if store_response:
-            self.memory.append(response)
+        if response is not None:
+            if store_prompt and prompt is not None:
+                self.memory.append(prompt)
+            if store_response:
+                self.memory.append(response)
 
         return response
