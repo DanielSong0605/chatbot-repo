@@ -2,6 +2,7 @@ from langchain_core.tools import tool
 from datetime import datetime
 import requests
 import json
+import wikipedia
 
 information_file_path = "extra_info.json"
 
@@ -82,4 +83,27 @@ def get_weather() -> str:
     return output
 
 
-all_tools = [add, multiply, get_date, get_time, get_weather]
+@tool
+def get_summary(topic: str) -> str:
+    """Get a summary of a Wikipedia page on the provided topic - similar to a Google search. ONLY use this function if you do not have any information on the topic, as it is very slow.
+    
+    Args:
+        topic: Topic of Wikipedia summary
+    """
+
+    print("GETTING WIKIPEDIA SUMMARY ON:", topic)
+
+    try:
+        summary = wikipedia.summary(topic, auto_suggest=False)
+    except wikipedia.PageError:
+        try:
+            summary = wikipedia.summary(topic, auto_suggest=True)
+        except wikipedia.PageError:
+            summary = "PageError: No such Wikipedia page exists"
+        except wikipedia.DisambiguationError:
+            summary = "DisambiguationError: Provided topic may refer to a number of pages"
+
+    return summary
+
+
+all_tools = [add, multiply, get_date, get_time, get_weather, get_summary]
