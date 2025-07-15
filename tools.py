@@ -1,5 +1,9 @@
 from langchain_core.tools import tool
 from datetime import datetime
+import requests
+import json
+
+information_file_path = "extra_info.json"
 
 
 @tool
@@ -38,4 +42,44 @@ def get_time() -> str:
     return datetime.now().strftime("%H:%M, %Ss")
 
 
-all_tools = [add, multiply, get_date, get_time]
+@tool
+def get_weather() -> str:
+    """Get the temperature, apparent temperature, relative humidity, precipiation amount, surface pressure and wind speed at the user's location. Please analyze and format this information into an easy-to-understand description of the current conditions, explaining what each of the numbers means."""
+
+    try:
+        with open(information_file_path, 'r') as f:
+            info = json.load(f)
+            latitude, longitude, timezone = info["latitude"], info["longitude"], info["timezone"]
+    except (FileNotFoundError, KeyError) as e:
+        print(f"WARNING: Either {information_file_path} does not exist, or it does not contain the necessary keys. Using placeholder values.")
+        latitude = 51.5085
+        longitude = -0.1257
+        timezone = "GMT"
+
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,surface_pressure,wind_speed_10m",
+        "timezone": timezone,
+        "forecast_days": 1
+    }
+
+    response = requests.get(url, params=params)
+
+    data = response.json()
+    current = data["current"]
+
+    temp = current["temperature_2m"]
+    humidity = current["relative_humidity_2m"]
+    apparent_temp = current["apparent_temperature"]
+    precipitation = current["precipitation"]
+    pressure = current["surface_pressure"]
+    wind_speed = current["wind_speed_10m"]
+
+    output = f"Temperature: {temp}C; Feels Like Temp: {apparent_temp}C; Relative Humidity: {humidity}%; Precipitation: {precipitation}mm; Surface Pressure: {pressure}hPa; Wind Speed: {wind_speed}km/h"
+    
+    return output
+
+
+all_tools = [add, multiply, get_date, get_time, get_weather]
