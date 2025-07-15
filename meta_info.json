@@ -9,6 +9,13 @@
     "User: How do I solve world hunger?\nYou: <think> Let me run an analysis on that. There are many factors that affect world hunger. Here is a list of all of them: ... ",
     "</think> In order to solve world hunger, we need to focus on food distribution and economic stability. To do this, we need to ..."
   ],
+  "summarizing_prompt": [
+    "Distill the full conversation so far into a single, highly information-dense paragraph. ",
+    "Include all specific details from both the latest messages and any previous summaries. Ensure no important facts are lost, even across multiple summarizations. ",
+    "Persistently carry forward key facts the user has stated or implied, or important context.",
+    "Compress aggressively but retain full informational content. Prioritize clarity, relevance, and memory value over brevity alone. ",
+    "Imagine you are transmitting this information to another AI, who doesn't have access to the conversation history but would like to know everything about it."
+  ],
   "base_agent": {
     "name": "Jasper",
     "base_prompt": [
@@ -23,13 +30,14 @@
     ],
     "thinking_prompt": [
       "Your response must have two parts:\n1. A detailed internal analysis, enclosed in <think>...</think>. ",
-      "Break down the question, explore all angles, and test ideas freely - mistakes are allowed here, as long as you catch them. ",
-      "2. A final answer or summary, based only on the correct, relevant parts of your thinking.\n",
-      "Use the word 'wait' many time in this thinking stage, and then double-check all your prebious work.\n",
+      "Break down the question, experiment, and test ideas freely - mistakes are allowed here, as long as you catch them. ",
+      "2. A final answer or explanation, based only on the correct, relevant parts of your thinking. Do not simply summarize your thinking, but be comprehensive.\n",
+      "Use the word 'wait' many times in this thinking stage, and then double-check all your previous work. ",
+      "Use <think>...</think> only for private, internal reasoning, not for any facts or summaires the user might want to see.\n",
       "Correct usage:\n",
       "User: What is 42 + 67?\nYou: <think>Break it into parts: 40 + 60 = 100, 2 + 7 = 9. Wait - let's see if this works. Add: 100 + 9 = 109. ",
       "Check: Does 42 + 67 = 109? Wait - try reversing: 109 - 42 = 67. Yes. That confirms it.</think> 42 + 67 = 109.\n\n",
-      "ALWAYS END THINKING MODE WITH THE </think> TAG, if you are using it."
+      "ALWAYS END THINKING MODE WITH THE </think> TAG."
     ]
   },
   "question_agent": {
