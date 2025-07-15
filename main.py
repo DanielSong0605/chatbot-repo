@@ -274,7 +274,7 @@ def main():
         list_microphones()
         mic_index = int(input("Enter the microphone index you want to use: "))
 
-    main_agent = ModelWrapper(sys_prompt=sys_prompt, tools_access=True)
+    main_agent = ModelWrapper(sys_prompt=sys_prompt, tools_access=True, max_tokens=3000, max_messages=20, memory_buffer=4)
 
     start_message = {"role": "system", "content": "START OF AGENT INTERACTION - NO MESSAGES BEFORE THIS"}
     invoking_agent = ModelWrapper(sys_prompt=f"You are determining whether, in the most recent message, the user is most likely talking to their AI assistant or someone else. If you determine the user is talking to the AI, named {agent_name.title()}, respond with 'True'. Otherwise respond with 'False'. Remember that the user may be talking to themself or another person. Think if necessary, but your final response (True or False) should be on a new line. You have access to the most recent user-agent interactions to help you.", memory=[start_message], model="fast")
