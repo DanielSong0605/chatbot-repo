@@ -5,17 +5,37 @@ from dotenv import load_dotenv
 from tools import all_tools
 from groq import RateLimitError, APIStatusError
 import json
+import threading
+from langchain.globals import set_verbose
 
 load_dotenv()
+
+# Sets lanchain verbose variable to true to print important chain events
+set_verbose(True)
 
 # Load in the meta info to be used later
 with open("meta_info.json", "r") as f:
     meta_info = json.load(f)
 
 # Create a list of commonly used llms to avoid having to reinitialize at agent creation
-base_llm = init_chat_model("meta-llama/llama-4-maverick-17b-128e-instruct", model_provider="groq")
-backup_llm = init_chat_model("meta-llama/llama-4-scout-17b-16e-instruct", model_provider="groq")
-fast_llm = init_chat_model("llama-3.1-8b-instant", model_provider="groq")
+
+# Temporary initialize llms as None to avoid PyLance warning
+base_llm = None
+backup_llm = None
+fast_llm = None
+
+# Assigns the llms in parallel using threads
+threads = []
+def init_and_store_model(varname, *args, **kwargs):
+    globals()[varname] = init_chat_model(*args, **kwargs)
+
+threads.append(threading.Thread(target=init_and_store_model, args=("base_llm", "meta-llama/llama-4-maverick-17b-128e-instruct"), kwargs={"model_provider": "groq"}))
+threads.append(threading.Thread(target=init_and_store_model, args=("backup_llm", "meta-llama/llama-4-scout-17b-16e-instruct"), kwargs={"model_provider": "groq"}))
+threads.append(threading.Thread(target=init_and_store_model, args=("fast_llm", "llama-3.1-8b-instant"), kwargs={"model_provider": "groq"}))
+
+for t in threads: t.start()
+for t in threads: t.join()
+
 
 model_registry = {
     "base": base_llm,
