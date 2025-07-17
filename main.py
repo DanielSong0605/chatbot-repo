@@ -11,7 +11,7 @@ import time
 from tools import all_tools
 from datetime import datetime
 from langchain.globals import set_verbose
-
+from dotenv import load_dotenv
 # Initialize pygame mixer for audio playback
 pygame.mixer.init()
 
