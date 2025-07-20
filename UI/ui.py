@@ -74,7 +74,7 @@ class ui(QWidget):
             self.ui.deafen.setText("Undeafen")
         else:
             self.ui.deafen.setText("Deafen")
-        return elf.isDeafened
+        return self.isDeafened
     #same idea as mute
 
     def getTextInput(self):
@@ -86,7 +86,7 @@ class ui(QWidget):
         #clears the box
 
 
-    def printTextOutput(self, textInput):
+    def textOutputer(self, textInput):
         self.ui.output.setText(textInput)
     #prints the textInput to the output box
 
