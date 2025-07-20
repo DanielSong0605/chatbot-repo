@@ -1,6 +1,8 @@
 # This Python file uses the following encoding: utf-8
 import sys
-from PySide6.QtCore import QTimer
+import os
+from PySide6.QtGui import QPixmap, QPainter, QColor, QBrush
+from PySide6.QtCore import QTimer, Qt
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -38,7 +40,13 @@ class ui(QWidget):
         self.ui = Ui_ui()
         self.ui.setupUi(self)
 
-    #initializes variables
+        # Initial image set
+        img_path = os.path.join(os.path.dirname(__file__), "images/awake.jpg")
+        pixmap = QPixmap(img_path)
+        self.ui.sleepStatus.setScaledContents(True)
+        self.ui.sleepStatus.setPixmap(pixmap)
+
+        #initializes variables
         self.isMuted = False
         self.isDeafened = False
         self.textInput = ""
@@ -46,34 +54,35 @@ class ui(QWidget):
         self.sleep = False
 
         # Connect signals to functions
-        self.ui.mute.toggled.connect(self.toggle_mute)
-        self.ui.deafen.toggled.connect(self.toggle_deafen)
+        self.ui.mute.clicked.connect(self.toggle_mute)
+        self.ui.deafen.clicked.connect(self.toggle_deafen)
         self.ui.sleepMode.clicked.connect(self.sleepModel)
         self.ui.enterButton.clicked.connect(self.getTextInput)
+        self.ui.showBEBox.toggled.connect(self.backEndBox)
 
         #connects to update_sleep_button type shii to checka nd update the text to sleeping/awake every 200ms
         self.timer = QTimer()
-        self.timer.timeout.connect(self.update_sleep_button_text)
+        self.timer.timeout.connect(self.update_buttons)
         self.timer.start(200)
-        
+
     # functions here
+
     # for toggling mute
-    def toggle_mute(self, checked):
-        self.isMuted = checked
-        if checked:
-            self.ui.mute.setText("Unmute")
+    def toggle_mute(self, clicked):
+
+        if self.isMuted:
+            self.isMuted = False
         else:
-            self.ui.mute.setText("Mute")
+            self.isMuted = True
         return self.isMuted
     #returns the status of isMuted, can change through main i guess
 
     # for toggling deafen
-    def toggle_deafen(self, checked):
-        self.isDeafened = checked
-        if checked:
-            self.ui.deafen.setText("Undeafen")
+    def toggle_deafen(self, clicked):
+        if self.isDeafened:
+            self.isDeafened = False;
         else:
-            self.ui.deafen.setText("Deafen")
+            self.isDeafened = True;
         return self.isDeafened
     #same idea as mute
 
@@ -99,12 +108,43 @@ class ui(QWidget):
             return self.sleep
         # is a clicky button that toggles sleep mode
 
+    def backEndBox(self, checked):
+        if checked:
+            self.ui.backendBox.show()
+        else:
+            self.ui.backendBox.hide()
+
+
     #constantly checks and updates the text on the sleep button
-    def update_sleep_button_text(self):
+    def update_buttons(self):
         if self.sleep:
             self.ui.sleepMode.setText("Wake")
+            img_path = os.path.join(os.path.dirname(__file__), "images/sleep.png")
+
         else:
             self.ui.sleepMode.setText("Sleep")
+            img_path = os.path.join(os.path.dirname(__file__), "images/awake.jpg")
+            
+        pixmap = QPixmap(img_path)
+        self.ui.sleepStatus.setScaledContents(True)
+        self.ui.sleepStatus.setPixmap(pixmap)
+
+        if self.isMuted:
+            self.ui.mute.setText("Unmute")
+
+        else:
+            self.ui.mute.setText("Mute")
+
+        
+
+        if self.isDeafened:
+            self.ui.deafen.setText("Undeafen")
+        else:
+            self.ui.deafen.setText("Deafen")
+
+
+
+
     
 #lowkey so like the variables are here we just have to integrate it into main 
 # then we can like write code to stop the listing or muting mic and deafening the sound and shii
