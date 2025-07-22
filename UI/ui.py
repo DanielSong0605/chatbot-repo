@@ -56,7 +56,7 @@ class ui(QWidget):
         self.isDeafened = False
         self.textInput = ""
         self.output = ""
-        self.sleep = False
+        self.sleep = True
         self.BEBoxOutput = ""
         self.inputDevice = ""
         self.outputDevice = ""
@@ -71,10 +71,71 @@ class ui(QWidget):
         self.ui.audioInputs.currentTextChanged.connect(self.set_input_device)
         self.ui.audioOutputs.currentTextChanged.connect(self.set_output_device)
 
+        #set state of ai
+        self.state = "sleeping"  # or "listening", "talking"
+        self.volume = 0.0  # Range: 0.0 to 100.0
+        self.pulse_radius = 0.0
+
+        #creates the pulsing motion type shii
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.animate)
+        self.timer.start(30)
+
         #connects to update_sleep_button type shii to checka nd update the text to sleeping/awake every 200ms
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: self.update_buttons(self.BEBoxOutput))
-        self.timer.start(200)
+        self.timer.start(30)
+
+    #for the ai circle
+
+    def set_state(self, state):
+        self.state = state
+        self.update()
+
+    def update_volume(self, volume):
+        self.volume = min(max(volume, 0.0), 100.0)
+
+    def animate(self):
+        # Animate outer pulse if talking
+        if self.state == "talking":
+            self.pulse_radius = 30 + (self.volume / 3)  # e.g. 30–60px range
+        else:
+            self.pulse_radius = 0
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        # Sizes
+        w = self.width()
+        h = self.height()
+        center = self.rect().center()
+        base_radius = min(w, h) / 6
+        bg_radius = base_radius * 2
+
+        # Draw background circle (light gray)
+        painter.setBrush(QColor("#E0E0E0"))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(center, bg_radius, bg_radius)
+
+        # Draw pulsating red circle (only when talking)
+        if self.state == "talking":
+            painter.setBrush(QColor(255, 0, 0, 80))  # Transparent red
+            painter.drawEllipse(center, self.pulse_radius, self.pulse_radius)
+
+        # Draw central circle based on state
+        color_map = {
+            "sleeping": "#2E2E2E",  # Dark gray
+            "listening": "#0080FF",  # Blue
+            "talking": "#FF0000"    # Red
+        }
+
+
+
+        painter.setBrush(QColor(color_map.get(self.state, "#2E2E2E")))
+        painter.drawEllipse(center, base_radius, base_radius)
+
 
     # functions here
 
@@ -121,10 +182,15 @@ class ui(QWidget):
     def sleepModel(self, clicked):
         if  self.sleep == False:
             self.sleep = True
+            self.set_state("sleeping")
             return self.sleep
+
         else:
             self.sleep = False
+            self.set_state("listening")
             return self.sleep
+
+
         # is a clicky button that toggles sleep mode
 
     def backEndBox(self, checked):
