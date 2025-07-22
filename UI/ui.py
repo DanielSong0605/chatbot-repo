@@ -58,6 +58,8 @@ class ui(QWidget):
         self.output = ""
         self.sleep = False
         self.BEBoxOutput = ""
+        self.inputDevice = ""
+        self.outputDevice = ""
 
         # Connect signals to functions
         self.ui.mute.clicked.connect(self.toggle_mute)
@@ -133,12 +135,14 @@ class ui(QWidget):
 
 
     def set_input_device(self, device_name):
-        self.selectedInputDevice = device_name
+        self.intputDevice = device_name
         print(f"Selected input device: {device_name}")
+        return self.intputDevice
 
     def set_output_device(self, device_name):
-        self.selectedOutputDevice = device_name
+        self.outputDevice = device_name
         print(f"Selected output device: {device_name}")
+        return self.outputDevice
 
 
     #constantly checks and updates stuff on the sleep button
