@@ -114,37 +114,11 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="enterButton">
-   <property name="geometry">
-    <rect>
-     <x>650</x>
-     <y>10</y>
-     <width>310</width>
-     <height>50</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Cascadia Code</family>
-     <pointsize>30</pointsize>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: #F8F8FF;  /* Light Gray */
-color: #000000;             /* Dark Gray text */
-border: 1px solid #C0C0C0;  /* Silver border */
-border-radius: 6px;
-padding: 5px;</string>
-   </property>
-   <property name="text">
-    <string>Enter</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="sleepMode">
    <property name="geometry">
     <rect>
      <x>650</x>
-     <y>190</y>
+     <y>130</y>
      <width>310</width>
      <height>50</height>
     </rect>
@@ -196,7 +170,7 @@ padding: 5px;</string>
    <property name="geometry">
     <rect>
      <x>650</x>
-     <y>130</y>
+     <y>70</y>
      <width>310</width>
      <height>50</height>
     </rect>
@@ -225,7 +199,7 @@ padding: 5px;</string>
    <property name="geometry">
     <rect>
      <x>650</x>
-     <y>70</y>
+     <y>10</y>
      <width>310</width>
      <height>50</height>
     </rect>
@@ -335,6 +309,98 @@ QCheckBox::indicator:hover {
     <string>Show Backend Box</string>
    </property>
    <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="audioInputs">
+   <property name="geometry">
+    <rect>
+     <x>970</x>
+     <y>10</y>
+     <width>301</width>
+     <height>50</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Cascadia Code</family>
+     <pointsize>30</pointsize>
+    </font>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">combo_style = &quot;&quot;&quot;
+QComboBox {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #2d2d2d,
+        stop:1 #3c3c3c);
+    color: #ffffff;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 5px;
+}
+QComboBox::drop-down {
+    border-left: 1px solid #555;
+}
+QComboBox QAbstractItemView {
+    background-color: #1e1e1e;
+    selection-background-color: #007acc;
+    color: #ffffff;
+}
+&quot;&quot;&quot;
+
+self.ui.inputDropdown.setStyleSheet(combo_style)
+self.ui.outputDropdown.setStyleSheet(combo_style)</string>
+   </property>
+   <property name="duplicatesEnabled">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="audioOutputs">
+   <property name="geometry">
+    <rect>
+     <x>970</x>
+     <y>70</y>
+     <width>301</width>
+     <height>50</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Cascadia Code</family>
+     <pointsize>30</pointsize>
+    </font>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">combo_style = &quot;&quot;&quot;
+QComboBox {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #2d2d2d,
+        stop:1 #3c3c3c);
+    color: #ffffff;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 5px;
+}
+QComboBox::drop-down {
+    border-left: 1px solid #555;
+}
+QComboBox QAbstractItemView {
+    background-color: #1e1e1e;
+    selection-background-color: #007acc;
+    color: #ffffff;
+}
+&quot;&quot;&quot;
+
+self.ui.inputDropdown.setStyleSheet(combo_style)
+self.ui.outputDropdown.setStyleSheet(combo_style)</string>
+   </property>
+   <property name="duplicatesEnabled">
     <bool>true</bool>
    </property>
   </widget>

@@ -1,8 +1,8 @@
 # This Python file uses the following encoding: utf-8
 import sys
 import os
-from PySide6.QtGui import QPixmap, QPainter, QColor, QBrush
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QPixmap, QPainter, QColor, QBrush, QKeyEvent
+from PySide6.QtCore import QTimer, Qt, QEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -35,10 +35,15 @@ from ui_form import Ui_ui
 class ui(QWidget):
 
 # Sets up UI and shiii
-    def __init__(self):
-        super().__init__()
+    def __init__(self, inputList, outputList, parent=None, on_enter=None):
+        super().__init__(parent)
+
         self.ui = Ui_ui()
         self.ui.setupUi(self)
+        self.ui.input.installEventFilter(self)
+        self.inputList = inputList
+        self.outputList = outputList
+        self.on_enter = on_enter
 
         # Initial image set
         img_path = os.path.join(os.path.dirname(__file__), "images/awake.jpg")
@@ -52,20 +57,32 @@ class ui(QWidget):
         self.textInput = ""
         self.output = ""
         self.sleep = False
+        self.BEBoxOutput = ""
 
         # Connect signals to functions
         self.ui.mute.clicked.connect(self.toggle_mute)
         self.ui.deafen.clicked.connect(self.toggle_deafen)
         self.ui.sleepMode.clicked.connect(self.sleepModel)
-        self.ui.enterButton.clicked.connect(self.getTextInput)
         self.ui.showBEBox.toggled.connect(self.backEndBox)
+        self.ui.audioInputs.addItems(self.inputList)
+        self.ui.audioOutputs.addItems(self.outputList)
+        self.ui.audioInputs.currentTextChanged.connect(self.set_input_device)
+        self.ui.audioOutputs.currentTextChanged.connect(self.set_output_device)
 
         #connects to update_sleep_button type shii to checka nd update the text to sleeping/awake every 200ms
         self.timer = QTimer()
-        self.timer.timeout.connect(self.update_buttons)
+        self.timer.timeout.connect(lambda: self.update_buttons(self.BEBoxOutput))
         self.timer.start(200)
 
     # functions here
+
+    def eventFilter(self, obj, event):
+        if obj == self.ui.input and event.type() == QEvent.KeyPress:
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                if event.modifiers() != Qt.ShiftModifier:
+                    self.getTextInput()  # directly call the function you want
+                    return True  # suppress default enter/newline
+        return super().eventFilter(obj, event)
 
     # for toggling mute
     def toggle_mute(self, clicked):
@@ -115,8 +132,19 @@ class ui(QWidget):
             self.ui.backendBox.hide()
 
 
-    #constantly checks and updates the text on the sleep button
-    def update_buttons(self):
+    def set_input_device(self, device_name):
+        self.selectedInputDevice = device_name
+        print(f"Selected input device: {device_name}")
+
+    def set_output_device(self, device_name):
+        self.selectedOutputDevice = device_name
+        print(f"Selected output device: {device_name}")
+
+
+    #constantly checks and updates stuff on the sleep button
+    def update_buttons(self, BEBoxOutput):
+        self.ui.backendBox.setText(BEBoxOutput)
+
         if self.sleep:
             self.ui.sleepMode.setText("Wake")
             img_path = os.path.join(os.path.dirname(__file__), "images/sleep.png")
@@ -141,7 +169,7 @@ class ui(QWidget):
             self.ui.deafen.setText("Undeafen")
         else:
             self.ui.deafen.setText("Deafen")
-
+    
 
 
 
@@ -152,7 +180,7 @@ class ui(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    widget = ui()
+    widget = ui(["hi", "bye"], ["1", "2"])
     widget.show()
     sys.exit(app.exec())
 

@@ -15,8 +15,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QLabel, QPushButton,
-    QSizePolicy, QTextEdit, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QLabel,
+    QPushButton, QSizePolicy, QTextEdit, QWidget)
 
 class Ui_ui(object):
     def setupUi(self, ui):
@@ -61,21 +61,12 @@ class Ui_ui(object):
 "border: 1px solid #C0C0C0;  /* Silver border */\n"
 "border-radius: 6px;\n"
 "padding: 5px;")
-        self.enterButton = QPushButton(ui)
-        self.enterButton.setObjectName(u"enterButton")
-        self.enterButton.setGeometry(QRect(650, 10, 310, 50))
+        self.sleepMode = QPushButton(ui)
+        self.sleepMode.setObjectName(u"sleepMode")
+        self.sleepMode.setGeometry(QRect(650, 130, 310, 50))
         font2 = QFont()
         font2.setFamilies([u"Cascadia Code"])
         font2.setPointSize(30)
-        self.enterButton.setFont(font2)
-        self.enterButton.setStyleSheet(u"background-color: #F8F8FF;  /* Light Gray */\n"
-"color: #000000;             /* Dark Gray text */\n"
-"border: 1px solid #C0C0C0;  /* Silver border */\n"
-"border-radius: 6px;\n"
-"padding: 5px;")
-        self.sleepMode = QPushButton(ui)
-        self.sleepMode.setObjectName(u"sleepMode")
-        self.sleepMode.setGeometry(QRect(650, 190, 310, 50))
         self.sleepMode.setFont(font2)
         self.sleepMode.setAutoFillBackground(False)
         self.sleepMode.setStyleSheet(u"background-color: #F8F8FF;  /* Light Gray */\n"
@@ -94,7 +85,7 @@ class Ui_ui(object):
 "padding: 5px;")
         self.mute = QPushButton(ui)
         self.mute.setObjectName(u"mute")
-        self.mute.setGeometry(QRect(650, 130, 310, 50))
+        self.mute.setGeometry(QRect(650, 70, 310, 50))
         self.mute.setFont(font2)
         self.mute.setAutoFillBackground(False)
         self.mute.setStyleSheet(u"background-color: #F8F8FF;  /* Light Gray */\n"
@@ -104,7 +95,7 @@ class Ui_ui(object):
 "padding: 5px;")
         self.deafen = QPushButton(ui)
         self.deafen.setObjectName(u"deafen")
-        self.deafen.setGeometry(QRect(650, 70, 310, 50))
+        self.deafen.setGeometry(QRect(650, 10, 310, 50))
         font3 = QFont()
         font3.setFamilies([u"Cascadia Code"])
         font3.setPointSize(30)
@@ -165,6 +156,62 @@ class Ui_ui(object):
 "    border: 1px solid #888;\n"
 "}")
         self.showBEBox.setChecked(True)
+        self.audioInputs = QComboBox(ui)
+        self.audioInputs.setObjectName(u"audioInputs")
+        self.audioInputs.setGeometry(QRect(970, 10, 301, 50))
+        self.audioInputs.setFont(font2)
+        self.audioInputs.setAutoFillBackground(False)
+        self.audioInputs.setStyleSheet(u"combo_style = \"\"\"\n"
+"QComboBox {\n"
+"    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
+"        stop:0 #2d2d2d,\n"
+"        stop:1 #3c3c3c);\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #555;\n"
+"    border-radius: 6px;\n"
+"    padding: 5px;\n"
+"}\n"
+"QComboBox::drop-down {\n"
+"    border-left: 1px solid #555;\n"
+"}\n"
+"QComboBox QAbstractItemView {\n"
+"    background-color: #1e1e1e;\n"
+"    selection-background-color: #007acc;\n"
+"    color: #ffffff;\n"
+"}\n"
+"\"\"\"\n"
+"\n"
+"self.ui.inputDropdown.setStyleSheet(combo_style)\n"
+"self.ui.outputDropdown.setStyleSheet(combo_style)")
+        self.audioInputs.setDuplicatesEnabled(True)
+        self.audioOutputs = QComboBox(ui)
+        self.audioOutputs.setObjectName(u"audioOutputs")
+        self.audioOutputs.setGeometry(QRect(970, 70, 301, 50))
+        self.audioOutputs.setFont(font2)
+        self.audioOutputs.setAutoFillBackground(False)
+        self.audioOutputs.setStyleSheet(u"combo_style = \"\"\"\n"
+"QComboBox {\n"
+"    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
+"        stop:0 #2d2d2d,\n"
+"        stop:1 #3c3c3c);\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #555;\n"
+"    border-radius: 6px;\n"
+"    padding: 5px;\n"
+"}\n"
+"QComboBox::drop-down {\n"
+"    border-left: 1px solid #555;\n"
+"}\n"
+"QComboBox QAbstractItemView {\n"
+"    background-color: #1e1e1e;\n"
+"    selection-background-color: #007acc;\n"
+"    color: #ffffff;\n"
+"}\n"
+"\"\"\"\n"
+"\n"
+"self.ui.inputDropdown.setStyleSheet(combo_style)\n"
+"self.ui.outputDropdown.setStyleSheet(combo_style)")
+        self.audioOutputs.setDuplicatesEnabled(True)
 
         self.retranslateUi(ui)
 
@@ -183,7 +230,6 @@ class Ui_ui(object):
 "</style></head><body style=\" font-family:'Segoe UI'; font-size:12pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Input</p>\n"
 "<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>", None))
-        self.enterButton.setText(QCoreApplication.translate("ui", u"Enter", None))
         self.sleepMode.setText(QCoreApplication.translate("ui", u"Sleep", None))
         self.sleepStatus.setText("")
         self.mute.setText(QCoreApplication.translate("ui", u"Mute", None))
