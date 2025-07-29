@@ -45,12 +45,6 @@ class ui(QWidget):
         self.outputList = outputList
         self.on_enter = on_enter
 
-        # Initial image set
-        img_path = os.path.join(os.path.dirname(__file__), "images/awake.jpg")
-        pixmap = QPixmap(img_path)
-        self.ui.sleepStatus.setScaledContents(True)
-        self.ui.sleepStatus.setPixmap(pixmap)
-
         #initializes variables
         self.isMuted = False
         self.isDeafened = False

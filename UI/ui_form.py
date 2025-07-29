@@ -74,15 +74,6 @@ class Ui_ui(object):
 "border: 1px solid #C0C0C0;  /* Silver border */\n"
 "border-radius: 6px;\n"
 "padding: 5px;")
-        self.sleepStatus = QLabel(ui)
-        self.sleepStatus.setObjectName(u"sleepStatus")
-        self.sleepStatus.setGeometry(QRect(660, 250, 151, 151))
-        self.sleepStatus.setAutoFillBackground(False)
-        self.sleepStatus.setStyleSheet(u"background-color: #F8F8FF;  /* Light Gray */\n"
-"color: #000000;             /* Dark Gray text */\n"
-"border: 1px solid #C0C0C0;  /* Silver border */\n"
-"border-radius: 6px;\n"
-"padding: 5px;")
         self.mute = QPushButton(ui)
         self.mute.setObjectName(u"mute")
         self.mute.setGeometry(QRect(650, 70, 310, 50))
@@ -231,7 +222,6 @@ class Ui_ui(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Input</p>\n"
 "<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>", None))
         self.sleepMode.setText(QCoreApplication.translate("ui", u"Sleep", None))
-        self.sleepStatus.setText("")
         self.mute.setText(QCoreApplication.translate("ui", u"Mute", None))
         self.deafen.setText(QCoreApplication.translate("ui", u"Deafen", None))
         self.backendBox.setText(QCoreApplication.translate("ui", u"TextLabel", None))
