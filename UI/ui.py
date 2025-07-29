@@ -217,15 +217,12 @@ class ui(QWidget):
 
         if self.sleep:
             self.ui.sleepMode.setText("Wake")
-            img_path = os.path.join(os.path.dirname(__file__), "images/sleep.png")
+
 
         else:
             self.ui.sleepMode.setText("Sleep")
-            img_path = os.path.join(os.path.dirname(__file__), "images/awake.jpg")
+
             
-        pixmap = QPixmap(img_path)
-        self.ui.sleepStatus.setScaledContents(True)
-        self.ui.sleepStatus.setPixmap(pixmap)
 
         if self.isMuted:
             self.ui.mute.setText("Unmute")

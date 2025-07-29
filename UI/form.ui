@@ -143,29 +143,6 @@ padding: 5px;</string>
     <string>Sleep</string>
    </property>
   </widget>
-  <widget class="QLabel" name="sleepStatus">
-   <property name="geometry">
-    <rect>
-     <x>660</x>
-     <y>250</y>
-     <width>151</width>
-     <height>151</height>
-    </rect>
-   </property>
-   <property name="autoFillBackground">
-    <bool>false</bool>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: #F8F8FF;  /* Light Gray */
-color: #000000;             /* Dark Gray text */
-border: 1px solid #C0C0C0;  /* Silver border */
-border-radius: 6px;
-padding: 5px;</string>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
   <widget class="QPushButton" name="mute">
    <property name="geometry">
     <rect>
